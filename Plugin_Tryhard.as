@@ -10,6 +10,7 @@ string labels_JSON = """{ "options": [
 { "text": "gain: %stamgain% amount: #stam/#stammax", "color": {"r": 1, "v": 1, "b": 1, "auto": true}, "position": { "x": 0.595, "y": 0.98 }, "size": 16 }
 ] }""";
 
+
 array<UILabel> labels;
 
 class UILabel
@@ -35,70 +36,98 @@ auto @option_window = OptionsWindow(); // the option window, responsible for dra
 class OptionsWindow
 {
    bool visible = false;
-   uint current_label = 0;
+   private uint current_label = 0;
    
    void display_window() // only to be used in the RenderInterface() entry point
    {
       UI::Begin("Additional \\$f00Tryhard\\$z Options");
       {
-         if (current_label < labels.Length) // if there are existing labels
+         if (labels.IsEmpty())
          {
-            UI::Text("Select a label to edit: \\$ffa" + labels[current_label].text);
-            
-            for (uint i = 0; i < labels.Length; ++i)
-               if (UI::Selectable("\\$ffa" + labels[i].text, i==current_label)) current_label = i;
-            
-            UI::Separator();
-            UI::Separator();
-         } // display the "add" button even if there is no existing label
-         
-         
-         if (UI::Button("Add a label"))
-            labels.InsertLast(UILabel());
-         
-         
-         if (current_label < labels.Length) {
-            UI::SameLine();
-            if (UI::Button("Remove the selected label"))
-            {
-               labels.RemoveAt(current_label);
-               if (current_label >= labels.Length)
-               current_label = labels.Length - 1;
-            }
-            
-            UI::Separator();
-            UI::Text("Font color:");
-            if (!(labels[current_label].auto_color = UI::Checkbox("Use the player's color", labels[current_label].auto_color)))
-               labels[current_label].color = UI::InputColor3("", labels[current_label].color);
-            
-            UI::Separator();
-            UI::Text("Font size:");
-            labels[current_label].font_size = Math::Clamp(UI::InputFloat("px", labels[current_label].font_size, 0.1f), 0.f, 1000.f);
-            
-            UI::Separator();
-            UI::Text("Position:");
-            labels[current_label].position.x = Math::Clamp(UI::InputFloat("% of X", labels[current_label].position.x * 100, 0.01f) / 100, 0.f, 1.f);
-            labels[current_label].position.y = Math::Clamp(UI::InputFloat("% of Y", labels[current_label].position.y * 100, 0.01f) / 100, 0.f, 1.f);
-            
-            UI::Separator();
-            UI::Text("Text:");
-            labels[current_label].text = UI::InputText("", labels[current_label].text);
-            UI::Text("Available placeholders:\n"
-                     "   -   \\$f00%stamgain\\$z : stamina regen (% of default value)\n"
-                     "   -   \\$f00%stam\\$z | \\$f00#stam\\$z : current stamina amount (100% = 3600)\n"
-                     "   -   \\$f00%stammax\\$z | \\$f00#stammax\\$z : full stamina amount (100% = 3600)");
-            
-            UI::Text("   -   \\$f00%roxgain\\$z | \\$f00#roxgain\\$z : rocket regen (100% = 0.63Hz))");
-            
-            UI::Text("   -   \\$f00#speed\\$z : player velocity\n"
-                     "   -   \\$f00#hspeed\\$z : player horizontal velocity (North/South/East/West)\n"
-                     "   -   \\$f00#vspeed\\$z : player vertical velocity (Up/Down)\n");
-            
-            UI::Text("   -   \\$f00#.speed\\$z : player velocity with higher accuracy\n"
-                     "   -   \\$f00#.hspeed\\$z : player horizontal velocity with higher accuracy\n"
-                     "   -   \\$f00#.vspeed\\$z : player vertical velocity with higher accuracy");
+	         if (UI::Button("\\$fffAdd a label"))
+		         {
+		            labels.InsertLast(UILabel());
+		            current_label = labels.Length - 1;
+		         }
          }
-      }
+         else
+         {
+            UI::Text("Select a label to edit:");
+            
+				UI::SameLine();
+				
+				
+				// ui element are identified by their label, an empty string as first argument makes thee box unclickable
+	         if (UI::BeginCombo("\\$000", "\\$ffa" + labels[current_label].text, UI :: ComboFlags :: None))
+	         {
+	            for (uint i = 0; i < labels.Length; ++i)
+	            {
+	            	// `invisible_uint()` generates a unique string from the i
+	               if (UI::Selectable("\\$ffa" + labels[i].text + invisible_uint(i), i==current_label))
+	               {
+	               	current_label = i;
+	               }
+	            }
+	            
+		         UI::Separator();
+		         
+		         if (UI::Button("Add a label"))
+		         {
+		            labels.InsertLast(UILabel());
+		            current_label = labels.Length - 1;
+		         }
+		         
+		         UI::SameLine();
+		         
+		         if (UI::Button("Remove the selected label"))
+		         {
+		            labels.RemoveAt(current_label);
+		            
+		            if (current_label >= labels.Length)
+		            {
+		            	current_label = labels.Length - 1;
+		            }
+		         }
+		         
+	         	UI::EndCombo();
+	         }
+	         
+	         if (!labels.IsEmpty())
+	         {
+		         UI::Separator();
+		         UI::Text("Font color:");
+		         if (!(labels[current_label].auto_color = UI::Checkbox("Use the player's color", labels[current_label].auto_color)))
+		            labels[current_label].color = UI::InputColor3("", labels[current_label].color);
+		         
+		         UI::Separator();
+		         UI::Text("Font size:");
+		         labels[current_label].font_size = Math::Clamp(UI::InputFloat("px", labels[current_label].font_size, 0.1f), 0.f, 1000.f);
+		         
+		         UI::Separator();
+		         UI::Text("Position:");
+		         labels[current_label].position.x = Math::Clamp(UI::InputFloat("% of X", labels[current_label].position.x * 100, 0.01f) / 100, 0.f, 1.f);
+		         labels[current_label].position.y = Math::Clamp(UI::InputFloat("% of Y", labels[current_label].position.y * 100, 0.01f) / 100, 0.f, 1.f);
+		         
+		         UI::Separator();
+		         UI::Text("Text:");
+		         labels[current_label].text = UI::InputText("", labels[current_label].text);
+		         UI::Text("Available placeholders:\n"
+		                  "   -   \\$f00%stamgain\\$z : stamina regen (% of default value)\n"
+		                  "   -   \\$f00%stam\\$z | \\$f00#stam\\$z : current stamina amount (100% = 3600)\n"
+		                  "   -   \\$f00%stammax\\$z | \\$f00#stammax\\$z : full stamina amount (100% = 3600)");
+		         
+		         UI::Text("   -   \\$f00%roxgain\\$z | \\$f00#roxgain\\$z : rocket regen (100% = 0.63Hz))");
+		         
+		         UI::Text("   -   \\$f00#speed\\$z : player velocity\n"
+		                  "   -   \\$f00#hspeed\\$z : player horizontal velocity (North/South/East/West)\n"
+		                  "   -   \\$f00#vspeed\\$z : player vertical velocity (Up/Down)\n");
+		         
+		         UI::Text("   -   \\$f00#.speed\\$z : player velocity with higher accuracy\n"
+		                  "   -   \\$f00#.hspeed\\$z : player horizontal velocity with higher accuracy\n"
+		                  "   -   \\$f00#.vspeed\\$z : player vertical velocity with higher accuracy");
+	         }
+	      }
+	   }
       UI::End();
       
       // I don't really know how to tell if something changed :/
@@ -200,6 +229,20 @@ vec4 get_rgb(float hue)
    return rgb;
 }
 
+string invisible_uint(uint i)
+{
+	if (i == 0) return "";
+	
+	if (i < 10) return "\\$00" + i;
+	
+	if (i < 100) return "\\$0" + i;
+	
+	if (i < 1000) return "\\$" + i;
+	
+	uint next = i / 1000;
+	return invisible_uint(next) + invisible_uint(next - i);
+}
+
 void show_error(string text)
 {
    UI::ShowNotification("Additional \\$f00Tryhard\\$z Options", text, 15000);
@@ -287,7 +330,7 @@ void Render() // every frame, display the UILabels in 2 steps
          text = Regex::Replace(text, "%stamgain", "" + Math::Floor(sm_script.StaminaGain * 1000) / 10);
       }
       
-      if (text.IndexOf("stam") > -1) // some previous tokens contain this one!..
+      if (text.IndexOf("stam") > -1) // the two previous tokens contain this one!..
       {
          text = Regex::Replace(text, "%stam", "" + Math::Floor(sm_script.Stamina / sm_script.StaminaMax / 3.6f) / 10);
          text = Regex::Replace(text, "#stam", "" + sm_script.Stamina);
@@ -304,7 +347,7 @@ void Render() // every frame, display the UILabels in 2 steps
          text = Regex::Replace(text, "#.vspeed", "" + sm_script.Velocity.y * 3.6f);
          text = Regex::Replace(text, "#vspeed", "" + Math::Floor(sm_script.Velocity.y * 36) / 10);
       }
-      if (text.IndexOf("speed") > -1)
+      if (text.IndexOf("speed") > -1) // the two previous tokens contain this one!..
       {
          text = Regex::Replace(text, "#.speed", "" + sm_script.Speed * 3.6f);
          text = Regex::Replace(text, "#speed", "" + Math::Floor(sm_script.Speed * 36) / 10);
