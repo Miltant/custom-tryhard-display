@@ -60,7 +60,11 @@ class OptionsWindow
          if (current_label < labels.Length) {
             UI::SameLine();
             if (UI::Button("Remove the selected label"))
+            {
                labels.RemoveAt(current_label);
+               if (current_label >= labels.Length)
+               current_label = labels.Length - 1;
+            }
             
             UI::Separator();
             UI::Text("Font color:");
@@ -292,18 +296,18 @@ void Render() // every frame, display the UILabels in 2 steps
       if (text.IndexOf("hspeed") > -1)
       {
          float hspeed = Math::Sqrt(sm_script.Velocity.x*sm_script.Velocity.x + sm_script.Velocity.z*sm_script.Velocity.z);
-         text = Regex::Replace(text, "#.hspeed", "" + hspeed);
-         text = Regex::Replace(text, "#hspeed", "" + Math::Floor(hspeed * 10) / 10);
+         text = Regex::Replace(text, "#.hspeed", "" + hspeed * 3.6f);
+         text = Regex::Replace(text, "#hspeed", "" + Math::Floor(hspeed * 36) / 10);
       }
       if (text.IndexOf("vspeed") > -1)
       {
-         text = Regex::Replace(text, "#.vspeed", "" + sm_script.Velocity.y);
-         text = Regex::Replace(text, "#vspeed", "" + Math::Floor(sm_script.Velocity.y * 10) / 10);
+         text = Regex::Replace(text, "#.vspeed", "" + sm_script.Velocity.y * 3.6f);
+         text = Regex::Replace(text, "#vspeed", "" + Math::Floor(sm_script.Velocity.y * 36) / 10);
       }
       if (text.IndexOf("speed") > -1)
       {
-         text = Regex::Replace(text, "#.speed", "" + sm_script.Speed);
-         text = Regex::Replace(text, "#speed", "" + Math::Floor(sm_script.Speed * 10) / 10);
+         text = Regex::Replace(text, "#.speed", "" + sm_script.Speed * 3.6f);
+         text = Regex::Replace(text, "#speed", "" + Math::Floor(sm_script.Speed * 36) / 10);
       }
       
       Draw::DrawString(
