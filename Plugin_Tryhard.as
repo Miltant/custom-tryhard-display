@@ -124,7 +124,8 @@ class OptionsWindow
 
                UI::Text("   -   \\$f00#pos\\$z : player position\n"
                         "   -   \\$f00#posX\\$z | \\$f00#posY\\$z | \\$f00#posZ\\$z : player position individual coordinates\n"
-                        "   -   \\$f00#posderivative\\$z | \\$f00#hposderivative\\$z | \\$f00#vposderivative\\$z : instantaneous \"velocity\"");
+                        "   -   \\$f00#dpos/dt\\$z | \\$f00#dhpos/dt\\$z | \\$f00#dvpos/dt\\$z : instantaneous \"velocity\"\n"
+                        "   -   \\$f00#dpos/dt2\\$z | \\$f00#dhpos/dt2\\$z | \\$f00#dvpos/dt2\\$z : instantaneous \"acceleration\"");
                
                UI::Text("   -   \\$f00#.speed\\$z | \\$f00#.pos\\$z | etc. : speed or position with higher accuracy\n");
 	         }
@@ -255,6 +256,8 @@ vec4 player_color = vec4(0, 0, 0, 1);
 
 vec3 position_cache = vec3(0, 0, 0);
 vec3 velocity_cache = vec3(0, 0, 0);
+vec3 velocity_cache_2 = vec3(0, 0, 0);
+vec3 acceleration_cache = vec3(0, 0, 0);
 
 void Update(float dt)
 {
@@ -269,10 +272,18 @@ void Update(float dt)
       
       CSmScriptPlayer@ sm_script = cast<CSmPlayer>(app.CurrentPlayground.GameTerminals[0].GUIPlayer).ScriptAPI;
 
+      velocity_cache_2 = velocity_cache;
+
       velocity_cache = vec3(
          (sm_script.Position.x - position_cache.x) / dt,
          (sm_script.Position.y - position_cache.y) / dt,
          (sm_script.Position.z - position_cache.z) / dt
+      );
+
+      acceleration_cache = vec3(
+         (velocity_cache.x - velocity_cache_2.x) / dt,
+         (velocity_cache.y - velocity_cache_2.y) / dt,
+         (velocity_cache.z - velocity_cache_2.z) / dt
       );
 
       position_cache = sm_script.Position;
@@ -378,27 +389,48 @@ void Render() // every frame, display the UILabels in 2 steps
          }
       }
 
-      if (text.IndexOf("posderivative") > -1)
+      if (text.IndexOf("pos/dt") > -1)
       {
-         if (text.IndexOf("hposderivative") > -1)
+         if (text.IndexOf("dhpos/dt2") > -1)
+         {
+            float hspeed = Math::Sqrt(acceleration_cache.x*acceleration_cache.x + acceleration_cache.z*acceleration_cache.z);
+
+            text = Regex::Replace(text, "#.dhpos/dt2", "" + hspeed);
+            text = Regex::Replace(text, "#dhpos/dt2", "" + Math::Floor(hspeed * 36) / 10);
+         }
+
+         if (text.IndexOf("dhpos/dt") > -1)
          {
             float hspeed = Math::Sqrt(velocity_cache.x*velocity_cache.x + velocity_cache.z*velocity_cache.z);
 
-            text = Regex::Replace(text, "#.hposderivative", "" + hspeed);
-            text = Regex::Replace(text, "#hposderivative", "" + Math::Floor(hspeed * 36) / 10);
+            text = Regex::Replace(text, "#.dhpos/dt", "" + hspeed);
+            text = Regex::Replace(text, "#dhpos/dt", "" + Math::Floor(hspeed * 36) / 10);
          }
-         if (text.IndexOf("vposderivative") > -1)
+         if (text.IndexOf("dvpos/dt2") > -1)
          {
-            text = Regex::Replace(text, "#.vposderivative", "" + velocity_cache.y * 3.6f);
-            text = Regex::Replace(text, "#vposderivative", "" + Math::Floor(velocity_cache.y * 36) / 10);
+            text = Regex::Replace(text, "#.dvpos/dt2", "" + acceleration_cache.y * 3.6f);
+            text = Regex::Replace(text, "#dvpos/dt2", "" + Math::Floor(acceleration_cache.y * 36) / 10);
+         }
+         if (text.IndexOf("dvpos/dt") > -1)
+         {
+            text = Regex::Replace(text, "#.dvpos/dt", "" + velocity_cache.y * 3.6f);
+            text = Regex::Replace(text, "#dvpos/dt", "" + Math::Floor(velocity_cache.y * 36) / 10);
          }
 
-         if (text.IndexOf("posderivative") > -1) // the two previous tokens contain this one!..
+         if (text.IndexOf("dpos/dt2") > -1)
+         {
+            float speed = Math::Sqrt(acceleration_cache.x*acceleration_cache.x + acceleration_cache.y*acceleration_cache.y + acceleration_cache.z*acceleration_cache.z);
+
+            text = Regex::Replace(text, "#.dpos/dt2", "" + speed * 3.6f);
+            text = Regex::Replace(text, "#dpos/dt2", "" + Math::Floor(speed * 36) / 10);
+         }
+
+         if (text.IndexOf("dpos/dt") > -1)
          {
             float speed = Math::Sqrt(velocity_cache.x*velocity_cache.x + velocity_cache.y*velocity_cache.y + velocity_cache.z*velocity_cache.z);
 
-            text = Regex::Replace(text, "#.posderivative", "" + speed * 3.6f);
-            text = Regex::Replace(text, "#posderivative", "" + Math::Floor(speed * 36) / 10);
+            text = Regex::Replace(text, "#.dpos/dt", "" + speed * 3.6f);
+            text = Regex::Replace(text, "#dpos/dt", "" + Math::Floor(speed * 36) / 10);
          }
       }
 
