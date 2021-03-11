@@ -118,13 +118,15 @@ class OptionsWindow
 		         
 		         UI::Text("   -   \\$f00%roxgain\\$z | \\$f00#roxgain\\$z : rocket regen (100% = 0.63Hz))");
 		         
-		         UI::Text("   -   \\$f00#speed\\$z : player velocity\n"
-		                  "   -   \\$f00#hspeed\\$z : player horizontal velocity (North/South/East/West)\n"
-		                  "   -   \\$f00#vspeed\\$z : player vertical velocity (Up/Down)\n");
-		         
-		         UI::Text("   -   \\$f00#.speed\\$z : player velocity with higher accuracy\n"
-		                  "   -   \\$f00#.hspeed\\$z : player horizontal velocity with higher accuracy\n"
-		                  "   -   \\$f00#.vspeed\\$z : player vertical velocity with higher accuracy");
+               UI::Text("   -   \\$f00#speed\\$z : player velocity\n"
+                        "   -   \\$f00#hspeed\\$z : player horizontal velocity (North/South/East/West)\n"
+                        "   -   \\$f00#vspeed\\$z : player vertical velocity (Up/Down)\n");
+
+               UI::Text("   -   \\$f00#pos\\$z : player position\n"
+                        "   -   \\$f00#posX\\$z | \\$f00#posY\\$z | \\$f00#posZ\\$z : player position individual coordinates\n"
+                        "   -   \\$f00#posderivative\\$z | \\$f00#hposderivative\\$z | \\$f00#vposderivative\\$z : instantaneous \"velocity\"");
+               
+               UI::Text("   -   \\$f00#.speed\\$z | \\$f00#.pos\\$z | etc. : speed or position with higher accuracy\n");
 	         }
 	      }
 	   }
@@ -251,12 +253,31 @@ void show_error(string text)
 
 vec4 player_color = vec4(0, 0, 0, 1);
 
-float rox_regen = 100;
+vec3 position_cache = vec3(0, 0, 0);
+vec3 velocity_cache = vec3(0, 0, 0);
 
-float stam_max = 3600;
-float stam_regen = 100;
+void Update(float dt)
+{
+   dt /= 1000;
 
-float stam = 3600;
+   if (dt > 0)
+   {
+      if ( app is null
+        || app.CurrentPlayground is null
+        || app.CurrentPlayground.GameTerminals[0].GUIPlayer is null )
+         return;
+      
+      CSmScriptPlayer@ sm_script = cast<CSmPlayer>(app.CurrentPlayground.GameTerminals[0].GUIPlayer).ScriptAPI;
+
+      velocity_cache = vec3(
+         (sm_script.Position.x - position_cache.x) / dt,
+         (sm_script.Position.y - position_cache.y) / dt,
+         (sm_script.Position.z - position_cache.z) / dt
+      );
+
+      position_cache = sm_script.Position;
+   }
+}
 
 
 
@@ -336,21 +357,79 @@ void Render() // every frame, display the UILabels in 2 steps
          text = Regex::Replace(text, "#stam", "" + sm_script.Stamina);
       }
       
-      if (text.IndexOf("hspeed") > -1)
+      if (text.IndexOf("speed") > -1)
       {
-         float hspeed = Math::Sqrt(sm_script.Velocity.x*sm_script.Velocity.x + sm_script.Velocity.z*sm_script.Velocity.z);
-         text = Regex::Replace(text, "#.hspeed", "" + hspeed * 3.6f);
-         text = Regex::Replace(text, "#hspeed", "" + Math::Floor(hspeed * 36) / 10);
+         if (text.IndexOf("hspeed") > -1)
+         {
+            float hspeed = Math::Sqrt(sm_script.Velocity.x*sm_script.Velocity.x + sm_script.Velocity.z*sm_script.Velocity.z);
+            text = Regex::Replace(text, "#.hspeed", "" + hspeed * 3.6f);
+            text = Regex::Replace(text, "#hspeed", "" + Math::Floor(hspeed * 36) / 10);
+         }
+         if (text.IndexOf("vspeed") > -1)
+         {
+            text = Regex::Replace(text, "#.vspeed", "" + sm_script.Velocity.y * 3.6f);
+            text = Regex::Replace(text, "#vspeed", "" + Math::Floor(sm_script.Velocity.y * 36) / 10);
+         }
+
+         if (text.IndexOf("speed") > -1) // the two previous tokens contain this one!..
+         {
+            text = Regex::Replace(text, "#.speed", "" + sm_script.Speed * 3.6f);
+            text = Regex::Replace(text, "#speed", "" + Math::Floor(sm_script.Speed * 36) / 10);
+         }
       }
-      if (text.IndexOf("vspeed") > -1)
+
+      if (text.IndexOf("posderivative") > -1)
       {
-         text = Regex::Replace(text, "#.vspeed", "" + sm_script.Velocity.y * 3.6f);
-         text = Regex::Replace(text, "#vspeed", "" + Math::Floor(sm_script.Velocity.y * 36) / 10);
+         if (text.IndexOf("hposderivative") > -1)
+         {
+            float hspeed = Math::Sqrt(velocity_cache.x*velocity_cache.x + velocity_cache.z*velocity_cache.z);
+
+            text = Regex::Replace(text, "#.hposderivative", "" + hspeed);
+            text = Regex::Replace(text, "#hposderivative", "" + Math::Floor(hspeed * 36) / 10);
+         }
+         if (text.IndexOf("vposderivative") > -1)
+         {
+            text = Regex::Replace(text, "#.vposderivative", "" + velocity_cache.y * 3.6f);
+            text = Regex::Replace(text, "#vposderivative", "" + Math::Floor(velocity_cache.y * 36) / 10);
+         }
+
+         if (text.IndexOf("posderivative") > -1) // the two previous tokens contain this one!..
+         {
+            float speed = Math::Sqrt(velocity_cache.x*velocity_cache.x + velocity_cache.y*velocity_cache.y + velocity_cache.z*velocity_cache.z);
+
+            text = Regex::Replace(text, "#.posderivative", "" + speed * 3.6f);
+            text = Regex::Replace(text, "#posderivative", "" + Math::Floor(speed * 36) / 10);
+         }
       }
-      if (text.IndexOf("speed") > -1) // the two previous tokens contain this one!..
+
+
+
+      if (text.IndexOf("pos") > -1)
       {
-         text = Regex::Replace(text, "#.speed", "" + sm_script.Speed * 3.6f);
-         text = Regex::Replace(text, "#speed", "" + Math::Floor(sm_script.Speed * 36) / 10);
+         if (text.IndexOf("posX") > -1)
+         {
+            text = Regex::Replace(text, "#.posX", "" + sm_script.Position.x);
+            text = Regex::Replace(text, "#posX", "" + Math::Floor(sm_script.Position.x * 10) / 10);
+         }
+         if (text.IndexOf("posY") > -1)
+         {
+            text = Regex::Replace(text, "#.posY", "" + sm_script.Position.y);
+            text = Regex::Replace(text, "#posY", "" + Math::Floor(sm_script.Position.y * 10) / 10);
+         }
+         if (text.IndexOf("posZ") > -1)
+         {
+            text = Regex::Replace(text, "#.posZ", "" + sm_script.Position.z);
+            text = Regex::Replace(text, "#posZ", "" + Math::Floor(sm_script.Position.z * 10) / 10);
+         }
+
+         if (text.IndexOf("#.pos") > -1)
+         {
+            text = Regex::Replace(text, "#.pos", "<" + sm_script.Position.x + ", " + sm_script.Position.y + ", " + sm_script.Position.z + ">");
+         }
+         if (text.IndexOf("#pos") > -1)
+         {
+            text = Regex::Replace(text, "#pos", "<" + Math::Floor(sm_script.Position.x * 10) / 10 + ", " + Math::Floor(sm_script.Position.y * 10) / 10 + ", " + Math::Floor(sm_script.Position.z * 10) / 10 + ">");
+         }
       }
       
       Draw::DrawString(
