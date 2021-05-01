@@ -1,7 +1,6 @@
 #name "Additional Tryhard Options"
 #author "MiLTanT"
 
-
 // The options are an array of UILabel, stored in the settings as a JSON
 
 [Setting name="Options as JSON" multiline description="\\$fffYou probably \\$f00DON'T\\$fff want to edit this. See the \\$d00Tryhard \\$dddOptions \\$ffffor a visual editor."]
