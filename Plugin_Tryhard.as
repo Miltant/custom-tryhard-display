@@ -8,7 +8,7 @@
 string labels_JSON = """{ "options": [ 
 { "text": "gain: %roxgain%", "color": {"r": 1, "v": 1, "b": 1, "auto": true}, "position": { "x": 0.295, "y": 0.98 }, "size": 16 },
 { "text": "gain: %stamgain% amount: #stam/#stammax", "color": {"r": 1, "v": 1, "b": 1, "auto": true}, "position": { "x": 0.595, "y": 0.98 }, "size": 16 }
-] }""";
+], "recording_variables": "#posY;#posX;#posZ" }""";
 
 
 array<UILabel> labels;
@@ -31,6 +31,7 @@ class UILabel
 auto @app = cast<CTrackMania>(GetApp()); // root node for interacting with maniaplanet
 
 auto @option_window = OptionsWindow(); // the option window, responsible for drawing itself
+auto @record_window = RecordWindow(); // the option window, responsible for drawing itself
 
 
 class OptionsWindow
@@ -44,80 +45,80 @@ class OptionsWindow
       {
          if (labels.IsEmpty())
          {
-	         if (UI::Button("\\$fffAdd a label"))
-		         {
-		            labels.InsertLast(UILabel());
-		            current_label = labels.Length - 1;
-		         }
+            if (UI::Button("\\$fffAdd a label"))
+               {
+                  labels.InsertLast(UILabel());
+                  current_label = labels.Length - 1;
+               }
          }
          else
          {
             UI::Text("Select a label to edit:");
             
-				UI::SameLine();
-				
-				
-				// ui element are identified by their label, an empty string as first argument makes thee box unclickable
-	         if (UI::BeginCombo("\\$000", "\\$ffa" + labels[current_label].text, UI :: ComboFlags :: None))
-	         {
-	            for (uint i = 0; i < labels.Length; ++i)
-	            {
-	            	// `invisible_uint()` generates a unique string from the i
-	               if (UI::Selectable("\\$ffa" + labels[i].text + invisible_uint(i), i==current_label))
-	               {
-	               	current_label = i;
-	               }
-	            }
-	            
-		         UI::Separator();
-		         
-		         if (UI::Button("Add a label"))
-		         {
-		            labels.InsertLast(UILabel());
-		            current_label = labels.Length - 1;
-		         }
-		         
-		         UI::SameLine();
-		         
-		         if (UI::Button("Remove the selected label"))
-		         {
-		            labels.RemoveAt(current_label);
-		            
-		            if (current_label >= labels.Length)
-		            {
-		            	current_label = labels.Length - 1;
-		            }
-		         }
-		         
-	         	UI::EndCombo();
-	         }
-	         
-	         if (!labels.IsEmpty())
-	         {
-		         UI::Separator();
-		         UI::Text("Font color:");
-		         if (!(labels[current_label].auto_color = UI::Checkbox("Use the player's color", labels[current_label].auto_color)))
-		            labels[current_label].color = UI::InputColor3("", labels[current_label].color);
-		         
-		         UI::Separator();
-		         UI::Text("Font size:");
-		         labels[current_label].font_size = Math::Clamp(UI::InputFloat("px", labels[current_label].font_size, 0.1f), 0.f, 1000.f);
-		         
-		         UI::Separator();
-		         UI::Text("Position:");
-		         labels[current_label].position.x = Math::Clamp(UI::InputFloat("% of X", labels[current_label].position.x * 100, 0.01f) / 100, 0.f, 1.f);
-		         labels[current_label].position.y = Math::Clamp(UI::InputFloat("% of Y", labels[current_label].position.y * 100, 0.01f) / 100, 0.f, 1.f);
-		         
-		         UI::Separator();
-		         UI::Text("Text:");
-		         labels[current_label].text = UI::InputText("", labels[current_label].text);
-		         UI::Text("Available placeholders:\n"
-		                  "   -   \\$f00%stamgain\\$z : stamina regen (% of default value)\n"
-		                  "   -   \\$f00%stam\\$z | \\$f00#stam\\$z : current stamina amount (100% = 3600)\n"
-		                  "   -   \\$f00%stammax\\$z | \\$f00#stammax\\$z : full stamina amount (100% = 3600)");
-		         
-		         UI::Text("   -   \\$f00%roxgain\\$z | \\$f00#roxgain\\$z : rocket regen (100% = 0.63Hz))");
-		         
+            UI::SameLine();
+            
+            
+            // ui element are identified by their label, an empty string as first argument makes thee box unclickable
+            if (UI::BeginCombo("\\$000", "\\$ffa" + labels[current_label].text, UI :: ComboFlags :: None))
+            {
+               for (uint i = 0; i < labels.Length; ++i)
+               {
+                  // `invisible_uint()` generates a unique string from the i
+                  if (UI::Selectable("\\$ffa" + labels[i].text + invisible_uint(i), i==current_label))
+                  {
+                     current_label = i;
+                  }
+               }
+               
+               UI::Separator();
+               
+               if (UI::Button("Add a label"))
+               {
+                  labels.InsertLast(UILabel());
+                  current_label = labels.Length - 1;
+               }
+               
+               UI::SameLine();
+               
+               if (UI::Button("Remove the selected label"))
+               {
+                  labels.RemoveAt(current_label);
+                  
+                  if (current_label >= labels.Length)
+                  {
+                     current_label = labels.Length - 1;
+                  }
+               }
+               
+               UI::EndCombo();
+            }
+            
+            if (!labels.IsEmpty())
+            {
+               UI::Separator();
+               UI::Text("Font color:");
+               if (!(labels[current_label].auto_color = UI::Checkbox("Use the player's color", labels[current_label].auto_color)))
+                  labels[current_label].color = UI::InputColor3("", labels[current_label].color);
+               
+               UI::Separator();
+               UI::Text("Font size:");
+               labels[current_label].font_size = Math::Clamp(UI::InputFloat("px", labels[current_label].font_size, 0.1f), 0.f, 1000.f);
+               
+               UI::Separator();
+               UI::Text("Position:");
+               labels[current_label].position.x = Math::Clamp(UI::InputFloat("% of X", labels[current_label].position.x * 100, 0.01f) / 100, 0.f, 1.f);
+               labels[current_label].position.y = Math::Clamp(UI::InputFloat("% of Y", labels[current_label].position.y * 100, 0.01f) / 100, 0.f, 1.f);
+               
+               UI::Separator();
+               UI::Text("Text:");
+               labels[current_label].text = UI::InputText("", labels[current_label].text);
+               UI::Text("Available placeholders:\n"
+                        "   -   \\$f00%stamgain\\$z : stamina regen (% of default value)\n"
+                        "   -   \\$f00%stam\\$z | \\$f00#stam\\$z : current stamina amount (100% = 3600)\n"
+                        "   -   \\$f00%stammax\\$z | \\$f00#stammax\\$z : full stamina amount (100% = 3600)");
+               
+               UI::Text("   -   \\$f00%roxgain\\$z | \\$f00#roxgain\\$z : rocket regen (100% = 0.63Hz))");
+               
                UI::Text("   -   \\$f00#speed\\$z : player velocity\n"
                         "   -   \\$f00#hspeed\\$z : player horizontal velocity (North/South/East/West)\n"
                         "   -   \\$f00#vspeed\\$z : player vertical velocity (Up/Down)\n");
@@ -128,13 +129,89 @@ class OptionsWindow
                         "   -   \\$f00#dpos/dt2\\$z | \\$f00#dhpos/dt2\\$z | \\$f00#dvpos/dt2\\$z : instantaneous \"acceleration\"");
                
                UI::Text("   -   \\$f00#.speed\\$z | \\$f00#.pos\\$z | etc. : speed or position with higher accuracy\n");
-	         }
-	      }
-	   }
+            }
+         }
+      }
       UI::End();
       
       // I don't really know how to tell if something changed :/
       update_JSON_from_array();
+   }
+}
+
+class RecordWindow
+{
+   bool visible = false;
+   string variables = "";
+   bool recording_started = false;
+   uint64 start_stamp = 0;
+   string buffer_record = "";
+   string last_row_added = "";
+   
+   void display_window() // only to be used in the RenderInterface() entry point
+   {
+      UI::Begin("A\\$f00T\\$zO Record Options");
+      {
+         if (buffer_record == "")
+         {
+            UI::Text("variables to record:");
+            variables = UI::InputText(";-separated list", variables);
+
+            if (variables != "")
+            {
+               if (UI::Button("Start"))
+               {
+                  visible = false;
+                  recording_started = true;
+                  start_stamp = Time::get_Now();
+               }
+            }
+
+            UI::Text("Available variables:\n"
+                     "   -   \\$f00%stamgain\\$z : stamina regen (% of default value)\n"
+                     "   -   \\$f00%stam\\$z | \\$f00#stam\\$z : current stamina amount (100% = 3600)\n"
+                     "   -   \\$f00%stammax\\$z | \\$f00#stammax\\$z : full stamina amount (100% = 3600)");
+            
+            UI::Text("   -   \\$f00%roxgain\\$z | \\$f00#roxgain\\$z : rocket regen (100% = 0.63Hz))");
+            
+            UI::Text("   -   \\$f00#speed\\$z : player velocity\n"
+                     "   -   \\$f00#hspeed\\$z : player horizontal velocity (North/South/East/West)\n"
+                     "   -   \\$f00#vspeed\\$z : player vertical velocity (Up/Down)\n");
+
+            UI::Text("   -   \\$f00#pos\\$z : player position\n"
+                     "   -   \\$f00#posX\\$z | \\$f00#posY\\$z | \\$f00#posZ\\$z : player position individual coordinates\n"
+                     "   -   \\$f00#dpos/dt\\$z | \\$f00#dhpos/dt\\$z | \\$f00#dvpos/dt\\$z : instantaneous \"velocity\"\n"
+                     "   -   \\$f00#dpos/dt2\\$z | \\$f00#dhpos/dt2\\$z | \\$f00#dvpos/dt2\\$z : instantaneous \"acceleration\"");
+            
+            UI::Text("   -   \\$f00#.speed\\$z | \\$f00#.pos\\$z | etc. : speed or position with higher accuracy\n");
+
+            // I don't really know how to tell if something changed :/
+            update_JSON_from_array();
+         }
+         else
+         {
+            UI::InputTextMultiline("RecordingResult.csv", buffer_record);
+         }
+      }
+      UI::End();
+   }
+
+   void add_row(CSmScriptPlayer@ sm_script)
+   {
+      string row = format_placeholders(variables, sm_script);
+      if (last_row_added != row)
+      {
+         last_row_added = row;
+         row = "" + (Time::get_Now()-start_stamp) + ";" + row;
+         buffer_record += "\n" + row;
+      }
+   }
+
+   void end_record()
+   {
+      visible = true;
+      recording_started = false;
+      last_row_added = "";
    }
 }
 
@@ -169,6 +246,10 @@ void update_array_from_JSON() // side effect: labels
          
          labels.InsertLast(label);
       }
+
+      Json::Value recording_variables_JSON = root["recording_variables"];
+      record_window.variables = recording_variables_JSON;
+
    }
    catch // ...and the handling is the same, I'm not trying anything fancy
    {
@@ -207,6 +288,7 @@ void update_JSON_from_array()
    }
    
    root["options"] = array_JSON;
+   root["recording_variables"] = record_window.variables;
    
    labels_JSON = Json::Write(root);
 }
@@ -234,21 +316,143 @@ vec4 get_rgb(float hue)
 
 string invisible_uint(uint i)
 {
-	if (i == 0) return "";
-	
-	if (i < 10) return "\\$00" + i;
-	
-	if (i < 100) return "\\$0" + i;
-	
-	if (i < 1000) return "\\$" + i;
-	
-	uint next = i / 1000;
-	return invisible_uint(next) + invisible_uint(next - i);
+   if (i == 0) return "";
+   
+   if (i < 10) return "\\$00" + i;
+   
+   if (i < 100) return "\\$0" + i;
+   
+   if (i < 1000) return "\\$" + i;
+   
+   uint next = i / 1000;
+   return invisible_uint(next) + invisible_uint(next - i);
 }
 
 void show_error(string text)
 {
    UI::ShowNotification("Additional \\$f00Tryhard\\$z Options", text, 15000);
+}
+
+string format_placeholders(string text, CSmScriptPlayer@ sm_script)
+{
+   if (text.IndexOf("rox") > -1)
+   {
+      text = Regex::Replace(text, "%roxgain", "" + sm_script.AmmoGain * 100);
+      text = Regex::Replace(text, "#roxgain", "" + sm_script.AmmoGain * 1.58); //  ?__?
+   }
+   
+   if (text.IndexOf("stammax") > -1)
+   {
+      text = Regex::Replace(text, "%stammax", "" + Math::Floor(sm_script.StaminaMax * 1000) / 10);
+      text = Regex::Replace(text, "#stammax", "" + sm_script.StaminaMax * 3600);
+   }
+   if (text.IndexOf("%stamgain") > -1)
+   {
+      text = Regex::Replace(text, "%stamgain", "" + Math::Floor(sm_script.StaminaGain * 1000) / 10);
+   }
+   
+   if (text.IndexOf("stam") > -1) // the two previous tokens contain this one!..
+   {
+      text = Regex::Replace(text, "%stam", "" + Math::Floor(sm_script.Stamina / sm_script.StaminaMax / 3.6f) / 10);
+      text = Regex::Replace(text, "#stam", "" + sm_script.Stamina);
+   }
+   
+   if (text.IndexOf("speed") > -1)
+   {
+      if (text.IndexOf("hspeed") > -1)
+      {
+         float hspeed = Math::Sqrt(sm_script.Velocity.x*sm_script.Velocity.x + sm_script.Velocity.z*sm_script.Velocity.z);
+         text = Regex::Replace(text, "#.hspeed", "" + hspeed * 3.6f);
+         text = Regex::Replace(text, "#hspeed", "" + Math::Floor(hspeed * 36) / 10);
+      }
+      if (text.IndexOf("vspeed") > -1)
+      {
+         text = Regex::Replace(text, "#.vspeed", "" + sm_script.Velocity.y * 3.6f);
+         text = Regex::Replace(text, "#vspeed", "" + Math::Floor(sm_script.Velocity.y * 36) / 10);
+      }
+
+      if (text.IndexOf("speed") > -1) // the two previous tokens contain this one!..
+      {
+         text = Regex::Replace(text, "#.speed", "" + sm_script.Speed * 3.6f);
+         text = Regex::Replace(text, "#speed", "" + Math::Floor(sm_script.Speed * 36) / 10);
+      }
+   }
+
+   if (text.IndexOf("pos/dt") > -1)
+   {
+      if (text.IndexOf("dhpos/dt2") > -1)
+      {
+         float hspeed = Math::Sqrt(acceleration_cache.x*acceleration_cache.x + acceleration_cache.z*acceleration_cache.z);
+
+         text = Regex::Replace(text, "#.dhpos/dt2", "" + hspeed);
+         text = Regex::Replace(text, "#dhpos/dt2", "" + Math::Floor(hspeed * 36) / 10);
+      }
+
+      if (text.IndexOf("dhpos/dt") > -1)
+      {
+         float hspeed = Math::Sqrt(velocity_cache.x*velocity_cache.x + velocity_cache.z*velocity_cache.z);
+
+         text = Regex::Replace(text, "#.dhpos/dt", "" + hspeed);
+         text = Regex::Replace(text, "#dhpos/dt", "" + Math::Floor(hspeed * 36) / 10);
+      }
+      if (text.IndexOf("dvpos/dt2") > -1)
+      {
+         text = Regex::Replace(text, "#.dvpos/dt2", "" + acceleration_cache.y * 3.6f);
+         text = Regex::Replace(text, "#dvpos/dt2", "" + Math::Floor(acceleration_cache.y * 36) / 10);
+      }
+      if (text.IndexOf("dvpos/dt") > -1)
+      {
+         text = Regex::Replace(text, "#.dvpos/dt", "" + velocity_cache.y * 3.6f);
+         text = Regex::Replace(text, "#dvpos/dt", "" + Math::Floor(velocity_cache.y * 36) / 10);
+      }
+
+      if (text.IndexOf("dpos/dt2") > -1)
+      {
+         float speed = Math::Sqrt(acceleration_cache.x*acceleration_cache.x + acceleration_cache.y*acceleration_cache.y + acceleration_cache.z*acceleration_cache.z);
+
+         text = Regex::Replace(text, "#.dpos/dt2", "" + speed * 3.6f);
+         text = Regex::Replace(text, "#dpos/dt2", "" + Math::Floor(speed * 36) / 10);
+      }
+
+      if (text.IndexOf("dpos/dt") > -1)
+      {
+         float speed = Math::Sqrt(velocity_cache.x*velocity_cache.x + velocity_cache.y*velocity_cache.y + velocity_cache.z*velocity_cache.z);
+
+         text = Regex::Replace(text, "#.dpos/dt", "" + speed * 3.6f);
+         text = Regex::Replace(text, "#dpos/dt", "" + Math::Floor(speed * 36) / 10);
+      }
+   }
+
+
+
+   if (text.IndexOf("pos") > -1)
+   {
+      if (text.IndexOf("posX") > -1)
+      {
+         text = Regex::Replace(text, "#.posX", "" + sm_script.Position.x);
+         text = Regex::Replace(text, "#posX", "" + Math::Floor(sm_script.Position.x * 10) / 10);
+      }
+      if (text.IndexOf("posY") > -1)
+      {
+         text = Regex::Replace(text, "#.posY", "" + sm_script.Position.y);
+         text = Regex::Replace(text, "#posY", "" + Math::Floor(sm_script.Position.y * 10) / 10);
+      }
+      if (text.IndexOf("posZ") > -1)
+      {
+         text = Regex::Replace(text, "#.posZ", "" + sm_script.Position.z);
+         text = Regex::Replace(text, "#posZ", "" + Math::Floor(sm_script.Position.z * 10) / 10);
+      }
+
+      if (text.IndexOf("#.pos") > -1)
+      {
+         text = Regex::Replace(text, "#.pos", "<" + sm_script.Position.x + ", " + sm_script.Position.y + ", " + sm_script.Position.z + ">");
+      }
+      if (text.IndexOf("#pos") > -1)
+      {
+         text = Regex::Replace(text, "#pos", "<" + Math::Floor(sm_script.Position.x * 10) / 10 + ", " + Math::Floor(sm_script.Position.y * 10) / 10 + ", " + Math::Floor(sm_script.Position.z * 10) / 10 + ">");
+      }
+   }
+   return text;
 }
 
 
@@ -263,15 +467,15 @@ void Update(float dt)
 {
    dt /= 1000;
 
+   if ( app is null
+     || app.CurrentPlayground is null
+     || app.CurrentPlayground.GameTerminals[0].GUIPlayer is null )
+      return;
+   
+   CSmScriptPlayer@ sm_script = cast<CSmPlayer>(app.CurrentPlayground.GameTerminals[0].GUIPlayer).ScriptAPI;
+
    if (dt > 0)
    {
-      if ( app is null
-        || app.CurrentPlayground is null
-        || app.CurrentPlayground.GameTerminals[0].GUIPlayer is null )
-         return;
-      
-      CSmScriptPlayer@ sm_script = cast<CSmPlayer>(app.CurrentPlayground.GameTerminals[0].GUIPlayer).ScriptAPI;
-
       velocity_cache_2 = velocity_cache;
 
       velocity_cache = vec3(
@@ -285,8 +489,12 @@ void Update(float dt)
          (velocity_cache.y - velocity_cache_2.y) / dt,
          (velocity_cache.z - velocity_cache_2.z) / dt
       );
+   }
+   position_cache = sm_script.Position;
 
-      position_cache = sm_script.Position;
+   if (record_window.recording_started)
+   {
+      record_window.add_row(sm_script);
    }
 }
 
@@ -294,23 +502,48 @@ void Update(float dt)
 
 // Entry points
 
-void RenderMenuMain() // check-uncheck `option_window.visible` ...
+void RenderMenuMain() // check-uncheck windows`.visible` ...
 {
-   if (option_window.visible)
+   if (UI::BeginMenu("Additional \\$f00Tryhard\\$z Options", true))
    {
-      if (UI::MenuItem("Hide \\$f00Tryhard\\$z Options", "", option_window.visible, true))
-         option_window.visible = false;
+      if (option_window.visible)
+      {
+         if (UI::MenuItem("Show Options", "", option_window.visible, true))
+            option_window.visible = false;
+      }
+      else
+      {
+         if (UI::MenuItem("Show Options...", "", option_window.visible, true))
+            option_window.visible = true;
+      }
+
+      if (record_window.visible)
+      {
+         if (UI::MenuItem("Hide Record Options", "", false, true))
+            record_window.visible = false;
+      }
+      else if (record_window.recording_started)
+      {
+         if (UI::MenuItem("Stop Recording...", "", false, true))
+            record_window.end_record();
+      }
+      else
+      {
+         if (UI::MenuItem("Start Recording...", "", false, true))
+         {
+            record_window.visible = true;
+            record_window.buffer_record = "";
+         }
+      }
+      UI::EndMenu();
    }
-   else
-   {
-      if (UI::MenuItem("Show \\$f00Tryhard\\$z Options", "", option_window.visible, true))
-         option_window.visible = true;
-   }    
 }
-void RenderInterface() // ... and, if it's checked, draw the OptionsWindow
+void RenderInterface() // ... and, if they are checked, draw the windows
 {
    if (option_window.visible)
        option_window.display_window();
+   if (record_window.visible)
+       record_window.display_window();
 }
 
 
@@ -341,129 +574,8 @@ void Render() // every frame, display the UILabels in 2 steps
    for (uint i = 0; i < labels.Length; ++i)
    {
       UILabel label = labels[i];
-      string text = label.text;
-      
-      // format label text's placeholders
-      
-      
-      if (text.IndexOf("rox") > -1)
-      {
-         text = Regex::Replace(text, "%roxgain", "" + sm_script.AmmoGain * 100);
-         text = Regex::Replace(text, "#roxgain", "" + sm_script.AmmoGain * 1.58); //  ?__?
-      }
-      
-      if (text.IndexOf("stammax") > -1)
-      {
-         text = Regex::Replace(text, "%stammax", "" + Math::Floor(sm_script.StaminaMax * 1000) / 10);
-         text = Regex::Replace(text, "#stammax", "" + sm_script.StaminaMax * 3600);
-      }
-      if (text.IndexOf("%stamgain") > -1)
-      {
-         text = Regex::Replace(text, "%stamgain", "" + Math::Floor(sm_script.StaminaGain * 1000) / 10);
-      }
-      
-      if (text.IndexOf("stam") > -1) // the two previous tokens contain this one!..
-      {
-         text = Regex::Replace(text, "%stam", "" + Math::Floor(sm_script.Stamina / sm_script.StaminaMax / 3.6f) / 10);
-         text = Regex::Replace(text, "#stam", "" + sm_script.Stamina);
-      }
-      
-      if (text.IndexOf("speed") > -1)
-      {
-         if (text.IndexOf("hspeed") > -1)
-         {
-            float hspeed = Math::Sqrt(sm_script.Velocity.x*sm_script.Velocity.x + sm_script.Velocity.z*sm_script.Velocity.z);
-            text = Regex::Replace(text, "#.hspeed", "" + hspeed * 3.6f);
-            text = Regex::Replace(text, "#hspeed", "" + Math::Floor(hspeed * 36) / 10);
-         }
-         if (text.IndexOf("vspeed") > -1)
-         {
-            text = Regex::Replace(text, "#.vspeed", "" + sm_script.Velocity.y * 3.6f);
-            text = Regex::Replace(text, "#vspeed", "" + Math::Floor(sm_script.Velocity.y * 36) / 10);
-         }
+      string text = format_placeholders(label.text, sm_script);      
 
-         if (text.IndexOf("speed") > -1) // the two previous tokens contain this one!..
-         {
-            text = Regex::Replace(text, "#.speed", "" + sm_script.Speed * 3.6f);
-            text = Regex::Replace(text, "#speed", "" + Math::Floor(sm_script.Speed * 36) / 10);
-         }
-      }
-
-      if (text.IndexOf("pos/dt") > -1)
-      {
-         if (text.IndexOf("dhpos/dt2") > -1)
-         {
-            float hspeed = Math::Sqrt(acceleration_cache.x*acceleration_cache.x + acceleration_cache.z*acceleration_cache.z);
-
-            text = Regex::Replace(text, "#.dhpos/dt2", "" + hspeed);
-            text = Regex::Replace(text, "#dhpos/dt2", "" + Math::Floor(hspeed * 36) / 10);
-         }
-
-         if (text.IndexOf("dhpos/dt") > -1)
-         {
-            float hspeed = Math::Sqrt(velocity_cache.x*velocity_cache.x + velocity_cache.z*velocity_cache.z);
-
-            text = Regex::Replace(text, "#.dhpos/dt", "" + hspeed);
-            text = Regex::Replace(text, "#dhpos/dt", "" + Math::Floor(hspeed * 36) / 10);
-         }
-         if (text.IndexOf("dvpos/dt2") > -1)
-         {
-            text = Regex::Replace(text, "#.dvpos/dt2", "" + acceleration_cache.y * 3.6f);
-            text = Regex::Replace(text, "#dvpos/dt2", "" + Math::Floor(acceleration_cache.y * 36) / 10);
-         }
-         if (text.IndexOf("dvpos/dt") > -1)
-         {
-            text = Regex::Replace(text, "#.dvpos/dt", "" + velocity_cache.y * 3.6f);
-            text = Regex::Replace(text, "#dvpos/dt", "" + Math::Floor(velocity_cache.y * 36) / 10);
-         }
-
-         if (text.IndexOf("dpos/dt2") > -1)
-         {
-            float speed = Math::Sqrt(acceleration_cache.x*acceleration_cache.x + acceleration_cache.y*acceleration_cache.y + acceleration_cache.z*acceleration_cache.z);
-
-            text = Regex::Replace(text, "#.dpos/dt2", "" + speed * 3.6f);
-            text = Regex::Replace(text, "#dpos/dt2", "" + Math::Floor(speed * 36) / 10);
-         }
-
-         if (text.IndexOf("dpos/dt") > -1)
-         {
-            float speed = Math::Sqrt(velocity_cache.x*velocity_cache.x + velocity_cache.y*velocity_cache.y + velocity_cache.z*velocity_cache.z);
-
-            text = Regex::Replace(text, "#.dpos/dt", "" + speed * 3.6f);
-            text = Regex::Replace(text, "#dpos/dt", "" + Math::Floor(speed * 36) / 10);
-         }
-      }
-
-
-
-      if (text.IndexOf("pos") > -1)
-      {
-         if (text.IndexOf("posX") > -1)
-         {
-            text = Regex::Replace(text, "#.posX", "" + sm_script.Position.x);
-            text = Regex::Replace(text, "#posX", "" + Math::Floor(sm_script.Position.x * 10) / 10);
-         }
-         if (text.IndexOf("posY") > -1)
-         {
-            text = Regex::Replace(text, "#.posY", "" + sm_script.Position.y);
-            text = Regex::Replace(text, "#posY", "" + Math::Floor(sm_script.Position.y * 10) / 10);
-         }
-         if (text.IndexOf("posZ") > -1)
-         {
-            text = Regex::Replace(text, "#.posZ", "" + sm_script.Position.z);
-            text = Regex::Replace(text, "#posZ", "" + Math::Floor(sm_script.Position.z * 10) / 10);
-         }
-
-         if (text.IndexOf("#.pos") > -1)
-         {
-            text = Regex::Replace(text, "#.pos", "<" + sm_script.Position.x + ", " + sm_script.Position.y + ", " + sm_script.Position.z + ">");
-         }
-         if (text.IndexOf("#pos") > -1)
-         {
-            text = Regex::Replace(text, "#pos", "<" + Math::Floor(sm_script.Position.x * 10) / 10 + ", " + Math::Floor(sm_script.Position.y * 10) / 10 + ", " + Math::Floor(sm_script.Position.z * 10) / 10 + ">");
-         }
-      }
-      
       Draw::DrawString(
          vec2(Draw::GetWidth() * label.position.x, Draw::GetHeight() * label.position.y),
          label.auto_color ? player_color : vec4(label.color.x, label.color.y, label.color.z, 1),
