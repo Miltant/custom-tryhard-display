@@ -1,6 +1,7 @@
 #name "Additional Tryhard Options"
 #author "MiLTanT"
 
+
 // The options are an array of UILabel, stored in the settings as a JSON
 
 [Setting name="Options as JSON" multiline description="\\$fffYou probably \\$f00DON'T\\$fff want to edit this. See the \\$d00Tryhard \\$dddOptions \\$ffffor a visual editor."]
@@ -488,8 +489,9 @@ void Update(float dt)
          (velocity_cache.y - velocity_cache_2.y) / dt,
          (velocity_cache.z - velocity_cache_2.z) / dt
       );
+
+      position_cache = sm_script.Position;
    }
-   position_cache = sm_script.Position;
 
    if (record_window.recording_started)
    {
