@@ -169,10 +169,12 @@ class RecordWindow
 
             UI::Text("Available variables:\n"
                      "   -   \\$f00%stamgain\\$z : stamina regen (% of default value)\n"
-                     "   -   \\$f00%stam\\$z | \\$f00#stam\\$z : current stamina amount (100% = 3600)\n"
+                     "   -   \\$f00%stam\\$z | \\$f00#stam\\$z : current stamina amount (usually 100% = 3600)\n"
                      "   -   \\$f00%stammax\\$z | \\$f00#stammax\\$z : full stamina amount (100% = 3600)");
             
-            UI::Text("   -   \\$f00%roxgain\\$z | \\$f00#roxgain\\$z : rocket regen (100% = 0.63Hz))");
+            UI::Text("   -   \\$f00%roxgain\\$z | \\$f00#roxgain\\$z : ammo regen (100% = 0.63Hz))\n"
+                     "   -   \\$f00%rox\\$z | \\$f00#rox\\$z : current ammo amount (% of #ammomax)\n"
+                     "   -   \\$f00#roxmax\\$z : full ammo amount");
             
             UI::Text("   -   \\$f00#speed\\$z : player velocity\n"
                      "   -   \\$f00#hspeed\\$z : player horizontal velocity (North/South/East/West)\n"
@@ -202,16 +204,15 @@ class RecordWindow
       if (last_row_added != row)
       {
          last_row_added = row;
-         row = "" + (Time::get_Now()-start_stamp) + ";" + row;
-         buffer_record += "\n" + row;
+         buffer_record += "\n" + (Time::get_Now() - start_stamp) + ";" + row;
       }
    }
 
    void end_record()
    {
-      visible = true;
       recording_started = false;
       last_row_added = "";
+      visible = true;
    }
 }
 
@@ -328,6 +329,26 @@ string invisible_uint(uint i)
    return invisible_uint(next) + invisible_uint(next - i);
 }
 
+int64 get_from_hex(string hex, uint sum, uint index)
+{
+   if (hex[index] > 47 && hex[index] < 58)
+      sum += hex[index] - 48;
+   if (hex[index] > 96 && hex[index] < 103)
+      sum += hex[index] - 87;
+   if (hex[index] > 64 && hex[index] < 71)
+      sum += hex[index] - 55;
+
+   if (++index >= hex.Length)
+      return sum;
+   
+   return get_from_hex(hex, sum * 16, index);
+}
+
+int64 get_from_hex(string hex)
+{
+   return get_from_hex(hex, 0, 0);
+}
+
 void show_error(string text)
 {
    UI::ShowNotification("Additional \\$f00Tryhard\\$z Options", text, 15000);
@@ -335,52 +356,94 @@ void show_error(string text)
 
 string format_placeholders(string text, CSmScriptPlayer@ sm_script)
 {
-   if (text.IndexOf("rox") > -1)
+
+   if (text.Contains("rox"))
    {
-      text = Regex::Replace(text, "%roxgain", "" + sm_script.AmmoGain * 100);
-      text = Regex::Replace(text, "#roxgain", "" + sm_script.AmmoGain * 1.58); //  ?__?
+      if (text.Contains("roxgain"))
+      {
+         text = Regex::Replace(text, "%roxgain", "" + sm_script.AmmoGain * 100);
+         text = Regex::Replace(text, "#roxgain", "" + sm_script.AmmoGain * 1.58); //  ?__?
+      }
+
+      if (text.Contains("rox"))
+      {
+         auto@ playground = cast<CSmArenaClient>(app.CurrentPlayground);
+         auto@ mode = playground.Arena.Rules.RulesMode;
+
+         EWeapon weapon; 
+
+         switch (sm_script.CurWeapon) {
+            case 1:
+               weapon = EWeapon::Laser;
+            break;
+            case 2:
+               weapon = EWeapon::Rocket;
+            break;
+            case 3:
+               weapon = EWeapon::Nucleus;
+            break;
+            case 5:
+               weapon = EWeapon::Arrow;
+            break;
+            case 6:
+               weapon = EWeapon::Missile;
+            break;
+            // case 7: weapon = EWeapon::Hunter;      break;
+            // case 8: weapon = EWeapon::Scout;       break;
+            // case 9: weapon = EWeapon::GoldenLaser; break;
+            default:
+         }
+
+         if (weapon != 0)
+         {
+            //text = Regex::Replace(text, "#roxmax", "" + mode.GetPlayerAmmoMax(sm_script, weapon));
+
+            //text = Regex::Replace(text, "%rox", "" + mode.GetPlayerAmmo(sm_script, weapon) / mode.GetPlayerAmmoMax(sm_script, weapon) * 100);
+            //text = Regex::Replace(text, "#rox", "" + mode.GetPlayerAmmo(sm_script, weapon)); //  ?__?
+         }
+      }
    }
    
-   if (text.IndexOf("stammax") > -1)
+   if (text.Contains("stammax"))
    {
       text = Regex::Replace(text, "%stammax", "" + Math::Floor(sm_script.StaminaMax * 1000) / 10);
       text = Regex::Replace(text, "#stammax", "" + sm_script.StaminaMax * 3600);
    }
-   if (text.IndexOf("%stamgain") > -1)
+   if (text.Contains("%stamgain"))
    {
       text = Regex::Replace(text, "%stamgain", "" + Math::Floor(sm_script.StaminaGain * 1000) / 10);
    }
    
-   if (text.IndexOf("stam") > -1) // the two previous tokens contain this one!..
+   if (text.Contains("stam")) // the two previous tokens contain this one!..
    {
       text = Regex::Replace(text, "%stam", "" + Math::Floor(sm_script.Stamina / sm_script.StaminaMax / 3.6f) / 10);
       text = Regex::Replace(text, "#stam", "" + sm_script.Stamina);
    }
    
-   if (text.IndexOf("speed") > -1)
+   if (text.Contains("speed"))
    {
-      if (text.IndexOf("hspeed") > -1)
+      if (text.Contains("hspeed"))
       {
          float hspeed = Math::Sqrt(sm_script.Velocity.x*sm_script.Velocity.x + sm_script.Velocity.z*sm_script.Velocity.z);
          text = Regex::Replace(text, "#.hspeed", "" + hspeed * 3.6f);
          text = Regex::Replace(text, "#hspeed", "" + Math::Floor(hspeed * 36) / 10);
       }
-      if (text.IndexOf("vspeed") > -1)
+      if (text.Contains("vspeed"))
       {
          text = Regex::Replace(text, "#.vspeed", "" + sm_script.Velocity.y * 3.6f);
          text = Regex::Replace(text, "#vspeed", "" + Math::Floor(sm_script.Velocity.y * 36) / 10);
       }
 
-      if (text.IndexOf("speed") > -1) // the two previous tokens contain this one!..
+      if (text.Contains("speed")) // the two previous tokens contain this one!..
       {
          text = Regex::Replace(text, "#.speed", "" + sm_script.Speed * 3.6f);
          text = Regex::Replace(text, "#speed", "" + Math::Floor(sm_script.Speed * 36) / 10);
       }
    }
 
-   if (text.IndexOf("pos/dt") > -1)
+   if (text.Contains("pos/dt"))
    {
-      if (text.IndexOf("dhpos/dt2") > -1)
+      if (text.Contains("dhpos/dt2"))
       {
          float hspeed = Math::Sqrt(acceleration_cache.x*acceleration_cache.x + acceleration_cache.z*acceleration_cache.z);
 
@@ -388,25 +451,25 @@ string format_placeholders(string text, CSmScriptPlayer@ sm_script)
          text = Regex::Replace(text, "#dhpos/dt2", "" + Math::Floor(hspeed * 36) / 10);
       }
 
-      if (text.IndexOf("dhpos/dt") > -1)
+      if (text.Contains("dhpos/dt"))
       {
          float hspeed = Math::Sqrt(velocity_cache.x*velocity_cache.x + velocity_cache.z*velocity_cache.z);
 
          text = Regex::Replace(text, "#.dhpos/dt", "" + hspeed);
          text = Regex::Replace(text, "#dhpos/dt", "" + Math::Floor(hspeed * 36) / 10);
       }
-      if (text.IndexOf("dvpos/dt2") > -1)
+      if (text.Contains("dvpos/dt2"))
       {
          text = Regex::Replace(text, "#.dvpos/dt2", "" + acceleration_cache.y * 3.6f);
          text = Regex::Replace(text, "#dvpos/dt2", "" + Math::Floor(acceleration_cache.y * 36) / 10);
       }
-      if (text.IndexOf("dvpos/dt") > -1)
+      if (text.Contains("dvpos/dt"))
       {
          text = Regex::Replace(text, "#.dvpos/dt", "" + velocity_cache.y * 3.6f);
          text = Regex::Replace(text, "#dvpos/dt", "" + Math::Floor(velocity_cache.y * 36) / 10);
       }
 
-      if (text.IndexOf("dpos/dt2") > -1)
+      if (text.Contains("dpos/dt2"))
       {
          float speed = Math::Sqrt(acceleration_cache.x*acceleration_cache.x + acceleration_cache.y*acceleration_cache.y + acceleration_cache.z*acceleration_cache.z);
 
@@ -414,7 +477,7 @@ string format_placeholders(string text, CSmScriptPlayer@ sm_script)
          text = Regex::Replace(text, "#dpos/dt2", "" + Math::Floor(speed * 36) / 10);
       }
 
-      if (text.IndexOf("dpos/dt") > -1)
+      if (text.Contains("dpos/dt"))
       {
          float speed = Math::Sqrt(velocity_cache.x*velocity_cache.x + velocity_cache.y*velocity_cache.y + velocity_cache.z*velocity_cache.z);
 
@@ -425,36 +488,52 @@ string format_placeholders(string text, CSmScriptPlayer@ sm_script)
 
 
 
-   if (text.IndexOf("pos") > -1)
+   if (text.Contains("pos"))
    {
-      if (text.IndexOf("posX") > -1)
+      if (text.Contains("posX"))
       {
          text = Regex::Replace(text, "#.posX", "" + sm_script.Position.x);
          text = Regex::Replace(text, "#posX", "" + Math::Floor(sm_script.Position.x * 10) / 10);
       }
-      if (text.IndexOf("posY") > -1)
+      if (text.Contains("posY"))
       {
          text = Regex::Replace(text, "#.posY", "" + sm_script.Position.y);
          text = Regex::Replace(text, "#posY", "" + Math::Floor(sm_script.Position.y * 10) / 10);
       }
-      if (text.IndexOf("posZ") > -1)
+      if (text.Contains("posZ"))
       {
          text = Regex::Replace(text, "#.posZ", "" + sm_script.Position.z);
          text = Regex::Replace(text, "#posZ", "" + Math::Floor(sm_script.Position.z * 10) / 10);
       }
 
-      if (text.IndexOf("#.pos") > -1)
+      if (text.Contains("#.pos"))
       {
          text = Regex::Replace(text, "#.pos", "<" + sm_script.Position.x + ", " + sm_script.Position.y + ", " + sm_script.Position.z + ">");
       }
-      if (text.IndexOf("#pos") > -1)
+      if (text.Contains("#pos"))
       {
          text = Regex::Replace(text, "#pos", "<" + Math::Floor(sm_script.Position.x * 10) / 10 + ", " + Math::Floor(sm_script.Position.y * 10) / 10 + ", " + Math::Floor(sm_script.Position.z * 10) / 10 + ">");
       }
    }
+
+   if (text.Contains("#{"))
+   {
+      auto addresses_groups = Regex::SearchAll(text, "#\\{([0-9a-fA-F]+)\\}");
+      for (uint i = 0; i < addresses_groups.Length; i++)
+      {
+         auto address_groups = addresses_groups[i];
+
+         if (address_groups.Length > 1)
+         {
+            int64 address = get_from_hex(address_groups[1]);
+
+            float accel = Dev::ReadFloat(address);
+            text = Regex::Replace(text, "#\\{" + address_groups[1] + "\\}", "" + accel);
+         }
+      }
+   }
    return text;
 }
-
 
 vec4 player_color = vec4(0, 0, 0, 1);
 
@@ -469,6 +548,7 @@ void Update(float dt)
 
    if ( app is null
      || app.CurrentPlayground is null
+     || app.CurrentPlayground.GameTerminals.Length == 0
      || app.CurrentPlayground.GameTerminals[0].GUIPlayer is null )
       return;
    
@@ -548,7 +628,22 @@ void RenderInterface() // ... and, if they are checked, draw the windows
 }
 
 
-void Main() { update_array_from_JSON(); }
+Dev::HookInfo@ grip_hook;
+void GetGripPtr() {
+   print("test");//"" + Dev::GetOffsetFloat(cast<CMwNod>(r12), 0));
+}
+void OnDestroyed() {
+   Dev::Unhook(grip_hook);
+}
+void Main() {
+   // auto opcode_aircontrol = Dev::Read(0x140456181, 7);
+
+   // if (opcode_aircontrol == "F3 41 0F 11 44 24 08") {
+   //    @grip_hook = Dev::Hook(0x140456181, 0, "GetGripPtr");
+   // }
+
+   update_array_from_JSON();
+}
 void OnSettingsChanged() { update_array_from_JSON(); }
 
 
@@ -559,6 +654,7 @@ void Render() // every frame, display the UILabels in 2 steps
    // asserts a player is playing and has his gui displayed on the screen
    if ( app is null
      || app.CurrentPlayground is null
+     || app.CurrentPlayground.GameTerminals.Length == 0
      || app.CurrentPlayground.GameTerminals[0].GUIPlayer is null )
       return;
    
