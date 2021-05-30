@@ -394,12 +394,12 @@ string format_placeholders(string text, CSmScriptPlayer@ sm_script)
             default:
          }
 
-         if (weapon != 0)
+         if (!(weapon == 0 || mode is null))
          {
-            //text = Regex::Replace(text, "#roxmax", "" + mode.GetPlayerAmmoMax(sm_script, weapon));
+            text = Regex::Replace(text, "#roxmax", "" + mode.GetPlayerAmmoMax(sm_script, weapon));
 
-            //text = Regex::Replace(text, "%rox", "" + mode.GetPlayerAmmo(sm_script, weapon) / mode.GetPlayerAmmoMax(sm_script, weapon) * 100);
-            //text = Regex::Replace(text, "#rox", "" + mode.GetPlayerAmmo(sm_script, weapon)); //  ?__?
+            text = Regex::Replace(text, "%rox", "" + mode.GetPlayerAmmo(sm_script, weapon) / mode.GetPlayerAmmoMax(sm_script, weapon) * 100);
+            text = Regex::Replace(text, "#rox", "" + mode.GetPlayerAmmo(sm_script, weapon)); //  ?__?
          }
       }
    }
