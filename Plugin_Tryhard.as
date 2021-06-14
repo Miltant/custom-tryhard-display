@@ -25,6 +25,17 @@ class UILabel
 }
 
 
+// Globals
+
+vec4 player_color = vec4(0, 0, 0, 1);
+
+vec3 position_cache = vec3(0, 0, 0);
+vec3 velocity_cache = vec3(0, 0, 0);
+vec3 velocity_cache_2 = vec3(0, 0, 0);
+vec3 acceleration_cache = vec3(0, 0, 0);
+
+uint64 grip_ptr = 0;
+
 
 // Important reference variables
 
@@ -117,7 +128,7 @@ class OptionsWindow
                         "   -   \\$f00%stam\\$z | \\$f00#stam\\$z : current stamina amount (100% = 3600)\n"
                         "   -   \\$f00%stammax\\$z | \\$f00#stammax\\$z : full stamina amount (100% = 3600)");
                
-               UI::Text("   -   \\$f00%roxgain\\$z | \\$f00#roxgain\\$z : rocket regen (100% = 0.63Hz))");
+               UI::Text("   -   \\$f00%roxgain\\$z | \\$f00#roxgain\\$z : rocket regen (100% = 0.63Hz)");
                
                UI::Text("   -   \\$f00#speed\\$z : player velocity\n"
                         "   -   \\$f00#hspeed\\$z : player horizontal velocity (North/South/East/West)\n"
@@ -127,6 +138,8 @@ class OptionsWindow
                         "   -   \\$f00#posX\\$z | \\$f00#posY\\$z | \\$f00#posZ\\$z : player position individual coordinates\n"
                         "   -   \\$f00#dpos/dt\\$z | \\$f00#dhpos/dt\\$z | \\$f00#dvpos/dt\\$z : instantaneous \"velocity\"\n"
                         "   -   \\$f00#dpos/dt2\\$z | \\$f00#dhpos/dt2\\$z | \\$f00#dvpos/dt2\\$z : instantaneous \"acceleration\"");
+               
+               UI::Text("   -   \\$f00#yaw\\$z | \\$f00#pitch\\$z : camera angles in radian");
                
                UI::Text("   -   \\$f00#.speed\\$z | \\$f00#.pos\\$z | etc. : speed or position with higher accuracy\n");
             }
@@ -185,6 +198,8 @@ class RecordWindow
                      "   -   \\$f00#dpos/dt\\$z | \\$f00#dhpos/dt\\$z | \\$f00#dvpos/dt\\$z : instantaneous \"velocity\"\n"
                      "   -   \\$f00#dpos/dt2\\$z | \\$f00#dhpos/dt2\\$z | \\$f00#dvpos/dt2\\$z : instantaneous \"acceleration\"");
             
+            UI::Text("   -   \\$f00#yaw\\$z | \\$f00#pitch\\$z : camera angles in radian");
+
             UI::Text("   -   \\$f00#.speed\\$z | \\$f00#.pos\\$z | etc. : speed or position with higher accuracy\n");
 
             // I don't really know how to tell if something changed :/
@@ -420,6 +435,18 @@ string format_placeholders(string text, CSmScriptPlayer@ sm_script)
       text = Regex::Replace(text, "#stam", "" + sm_script.Stamina);
    }
    
+   if (text.Contains("yaw"))
+   {
+      text = Regex::Replace(text, "#.yaw", "" + Math::Floor(sm_script.AimYaw * 10) / 10);
+      text = Regex::Replace(text, "#yaw", "" + sm_script.AimYaw);
+   }
+   
+   if (text.Contains("pitch"))
+   {
+      text = Regex::Replace(text, "#.pitch", "" + Math::Floor(sm_script.AimPitch * 10) / 10);
+      text = Regex::Replace(text, "#pitch", "" + sm_script.AimPitch);
+   }
+   
    if (text.Contains("speed"))
    {
       if (text.Contains("hspeed"))
@@ -516,6 +543,40 @@ string format_placeholders(string text, CSmScriptPlayer@ sm_script)
       }
    }
 
+   if (text.Contains("grip"))
+   {
+      vec3 grip = vec3(0, 0, 0);
+
+      if (grip_ptr != 0) {
+         grip = Dev::ReadVec3(grip_ptr);
+      }
+
+      if (text.Contains("gripX"))
+      {
+         text = Regex::Replace(text, "#.gripX", "" + grip.x);
+         text = Regex::Replace(text, "#gripX", "" + Math::Floor(grip.x * 10) / 10);
+      }
+      if (text.Contains("gripY"))
+      {
+         text = Regex::Replace(text, "#.gripY", "" + grip.y);
+         text = Regex::Replace(text, "#gripY", "" + Math::Floor(grip.y * 10) / 10);
+      }
+      if (text.Contains("gripZ"))
+      {
+         text = Regex::Replace(text, "#.gripZ", "" + grip.z);
+         text = Regex::Replace(text, "#gripZ", "" + Math::Floor(grip.z * 10) / 10);
+      }
+
+      if (text.Contains("#.grip"))
+      {
+         text = Regex::Replace(text, "#.grip", "" + Math::Sqrt(grip.x*grip.x + grip.x*grip.y + grip.z*grip.z));
+      }
+      if (text.Contains("#grip"))
+      {
+         text = Regex::Replace(text, "#grip", "" + Math::Floor(Math::Sqrt(grip.x*grip.x + grip.x*grip.y + grip.z*grip.z) * 10) / 10);
+      }
+   }
+
    if (text.Contains("#{"))
    {
       auto addresses_groups = Regex::SearchAll(text, "#\\{([0-9a-fA-F]+)\\}");
@@ -534,13 +595,6 @@ string format_placeholders(string text, CSmScriptPlayer@ sm_script)
    }
    return text;
 }
-
-vec4 player_color = vec4(0, 0, 0, 1);
-
-vec3 position_cache = vec3(0, 0, 0);
-vec3 velocity_cache = vec3(0, 0, 0);
-vec3 velocity_cache_2 = vec3(0, 0, 0);
-vec3 acceleration_cache = vec3(0, 0, 0);
 
 void Update(float dt)
 {
@@ -629,18 +683,19 @@ void RenderInterface() // ... and, if they are checked, draw the windows
 
 
 Dev::HookInfo@ grip_hook;
-void GetGripPtr() {
-   print("test");//"" + Dev::GetOffsetFloat(cast<CMwNod>(r12), 0));
+void GetGripPtr(uint64 r12) {
+   grip_ptr = r12;
 }
 void OnDestroyed() {
    Dev::Unhook(grip_hook);
 }
 void Main() {
-   // auto opcode_aircontrol = Dev::Read(0x140456181, 7);
+   uint64 address_grip = 0x1404561E5;
+   auto opcode_grip = Dev::Read(address_grip, 5);
 
-   // if (opcode_aircontrol == "F3 41 0F 11 44 24 08") {
-   //    @grip_hook = Dev::Hook(0x140456181, 0, "GetGripPtr");
-   // }
+   if (opcode_grip == "F3 41 0F 59 F8") {
+      @grip_hook = Dev::Hook(address_grip, 0, "GetGripPtr");
+   }
 
    update_array_from_JSON();
 }
@@ -656,7 +711,10 @@ void Render() // every frame, display the UILabels in 2 steps
      || app.CurrentPlayground is null
      || app.CurrentPlayground.GameTerminals.Length == 0
      || app.CurrentPlayground.GameTerminals[0].GUIPlayer is null )
+   {
+      grip_ptr = 0;
       return;
+  }
    
    // the player as a social body: nick, color, region, planets count...
    CSmPlayer@ sm_player = cast<CSmPlayer>(app.CurrentPlayground.GameTerminals[0].GUIPlayer);
