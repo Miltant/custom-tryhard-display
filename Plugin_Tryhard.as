@@ -567,13 +567,11 @@ string format_placeholders(string text, CSmScriptPlayer@ sm_script)
          text = Regex::Replace(text, "#gripZ", "" + Math::Floor(grip.z * 10) / 10);
       }
 
-      if (text.Contains("#.grip"))
+      if (text.Contains("grip"))
       {
-         text = Regex::Replace(text, "#.grip", "" + Math::Sqrt(grip.x*grip.x + grip.x*grip.y + grip.z*grip.z));
-      }
-      if (text.Contains("#grip"))
-      {
-         text = Regex::Replace(text, "#grip", "" + Math::Floor(Math::Sqrt(grip.x*grip.x + grip.x*grip.y + grip.z*grip.z) * 10) / 10);
+         text = Regex::Replace(text, "#.grip", "" + grip.Length());
+         text = Regex::Replace(text, "#grip", "" + Math::Floor(grip.Length() * 10) / 10);
+         text = Regex::Replace(text, "°grip", "" + Math::Atan2(grip.x, grip.z));
       }
    }
 
