@@ -130,6 +130,8 @@ class OptionsWindow
                
                UI::Text("   -   \\$f00%roxgain\\$z | \\$f00#roxgain\\$z : rocket regen (100% = 0.63Hz)");
                
+               UI::Text("   -   \\$f00#yaw\\$z | \\$f00#pitch\\$z : camera angles in radian");
+               
                UI::Text("   -   \\$f00#speed\\$z : player velocity\n"
                         "   -   \\$f00#hspeed\\$z : player horizontal velocity (North/South/East/West)\n"
                         "   -   \\$f00#vspeed\\$z : player vertical velocity (Up/Down)\n");
@@ -138,10 +140,11 @@ class OptionsWindow
                         "   -   \\$f00#posX\\$z | \\$f00#posY\\$z | \\$f00#posZ\\$z : player position individual coordinates\n"
                         "   -   \\$f00#dpos/dt\\$z | \\$f00#dhpos/dt\\$z | \\$f00#dvpos/dt\\$z : instantaneous \"velocity\"\n"
                         "   -   \\$f00#dpos/dt2\\$z | \\$f00#dhpos/dt2\\$z | \\$f00#dvpos/dt2\\$z : instantaneous \"acceleration\"");
+
+               UI::Text("   -   \\$f00#grip\\$z | \\$f00#.gripX\\$z | etc. : local only: grip vector\n"
+                        "   -   \\$f00°grip\\$z : local only: grip vector direction");
                
-               UI::Text("   -   \\$f00#yaw\\$z | \\$f00#pitch\\$z : camera angles in radian");
-               
-               UI::Text("   -   \\$f00#.speed\\$z | \\$f00#.pos\\$z | etc. : speed or position with higher accuracy\n");
+               UI::Text("   -   \\$f00#.speed\\$z | \\$f00#.pos\\$z | etc. : speed, position, or grip with higher accuracy\n");
             }
          }
       }
@@ -189,6 +192,8 @@ class RecordWindow
                      "   -   \\$f00%rox\\$z | \\$f00#rox\\$z : current ammo amount (% of #ammomax)\n"
                      "   -   \\$f00#roxmax\\$z : full ammo amount");
             
+            UI::Text("   -   \\$f00#yaw\\$z | \\$f00#pitch\\$z : camera angles in radian");
+            
             UI::Text("   -   \\$f00#speed\\$z : player velocity\n"
                      "   -   \\$f00#hspeed\\$z : player horizontal velocity (North/South/East/West)\n"
                      "   -   \\$f00#vspeed\\$z : player vertical velocity (Up/Down)\n");
@@ -197,10 +202,11 @@ class RecordWindow
                      "   -   \\$f00#posX\\$z | \\$f00#posY\\$z | \\$f00#posZ\\$z : player position individual coordinates\n"
                      "   -   \\$f00#dpos/dt\\$z | \\$f00#dhpos/dt\\$z | \\$f00#dvpos/dt\\$z : instantaneous \"velocity\"\n"
                      "   -   \\$f00#dpos/dt2\\$z | \\$f00#dhpos/dt2\\$z | \\$f00#dvpos/dt2\\$z : instantaneous \"acceleration\"");
-            
-            UI::Text("   -   \\$f00#yaw\\$z | \\$f00#pitch\\$z : camera angles in radian");
 
-            UI::Text("   -   \\$f00#.speed\\$z | \\$f00#.pos\\$z | etc. : speed or position with higher accuracy\n");
+            UI::Text("   -   \\$f00#grip\\$z | \\$f00#.grip\\$z | \\$f00#.gripX\\$z | etc. : local only: grip vector\n"
+                     "   -   \\$f00°grip\\$z : local only: grip vector direction");
+
+            UI::Text("   -   \\$f00#.speed\\$z | \\$f00#.pos\\$z | etc. : speed, position, or grip with higher accuracy\n");
 
             // I don't really know how to tell if something changed :/
             update_JSON_from_array();
