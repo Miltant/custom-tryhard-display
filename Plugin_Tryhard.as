@@ -326,7 +326,7 @@ vec4 get_rgb(float hue)
       float a = k - 3;
       float b = -1 * k + 9;
       
-      float comp = 0.6 - (0.4 * Math::Max(0.0f - 1.0f, Math::Min(Math::Min(a, b), 1.0f)));
+      float comp = 0.6 - 0.4 * Math::Clamp(Math::Min(a, b), -1.0f, 1.0f);
       
       if (i == 0) rgb.x = comp;
       if (i == 1) rgb.y = comp;
