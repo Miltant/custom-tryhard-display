@@ -141,8 +141,8 @@ class OptionsWindow
                         "   -   \\$f00#dpos/dt\\$z | \\$f00#dhpos/dt\\$z | \\$f00#dvpos/dt\\$z : instantaneous \"velocity\"\n"
                         "   -   \\$f00#dpos/dt2\\$z | \\$f00#dhpos/dt2\\$z | \\$f00#dvpos/dt2\\$z : instantaneous \"acceleration\"");
 
-               UI::Text("   -   \\$f00#grip\\$z | \\$f00#.gripX\\$z | etc. : local only: grip vector\n"
-                        "   -   \\$f00°grip\\$z : local only: grip vector direction");
+               UI::Text("   -   \\$f00#grip\\$z | \\$f00#.gripX\\$z | etc. : grip vector\n"
+                        "   -   \\$f00°grip\\$z : grip vector direction");
                
                UI::Text("   -   \\$f00#.speed\\$z | \\$f00#.pos\\$z | etc. : speed, position, or grip with higher accuracy\n");
             }
@@ -203,8 +203,8 @@ class RecordWindow
                      "   -   \\$f00#dpos/dt\\$z | \\$f00#dhpos/dt\\$z | \\$f00#dvpos/dt\\$z : instantaneous \"velocity\"\n"
                      "   -   \\$f00#dpos/dt2\\$z | \\$f00#dhpos/dt2\\$z | \\$f00#dvpos/dt2\\$z : instantaneous \"acceleration\"");
 
-            UI::Text("   -   \\$f00#grip\\$z | \\$f00#.grip\\$z | \\$f00#.gripX\\$z | etc. : local only: grip vector\n"
-                     "   -   \\$f00°grip\\$z : local only: grip vector direction");
+            UI::Text("   -   \\$f00#grip\\$z | \\$f00#.grip\\$z | \\$f00#.gripX\\$z | etc. : grip vector\n"
+                     "   -   \\$f00°grip\\$z : grip vector direction");
 
             UI::Text("   -   \\$f00#.speed\\$z | \\$f00#.pos\\$z | etc. : speed, position, or grip with higher accuracy\n");
 
