@@ -391,27 +391,27 @@ string format_placeholders(string text, CSmScriptPlayer@ sm_script)
          auto@ playground = cast<CSmArenaClient>(app.CurrentPlayground);
          auto@ mode = playground.Arena.Rules.RulesMode;
 
-         EWeapon weapon; 
+         CSmArenaRulesMode::EWeapon weapon; 
 
          switch (sm_script.CurWeapon) {
             case 1:
-               weapon = EWeapon::Laser;
+               weapon = CSmArenaRulesMode::EWeapon::Laser;
             break;
             case 2:
-               weapon = EWeapon::Rocket;
+               weapon = CSmArenaRulesMode::EWeapon::Rocket;
             break;
             case 3:
-               weapon = EWeapon::Nucleus;
+               weapon = CSmArenaRulesMode::EWeapon::Nucleus;
             break;
             case 5:
-               weapon = EWeapon::Arrow;
+               weapon = CSmArenaRulesMode::EWeapon::Arrow;
             break;
             case 6:
-               weapon = EWeapon::Missile;
+               weapon = CSmArenaRulesMode::EWeapon::Missile;
             break;
-            // case 7: weapon = EWeapon::Hunter;      break;
-            // case 8: weapon = EWeapon::Scout;       break;
-            // case 9: weapon = EWeapon::GoldenLaser; break;
+            // case 7: weapon = CSmArenaRulesMode::EWeapon::Hunter;      break;
+            // case 8: weapon = CSmArenaRulesMode::EWeapon::Scout;       break;
+            // case 9: weapon = CSmArenaRulesMode::EWeapon::GoldenLaser; break;
             default:
          }
 
@@ -688,7 +688,21 @@ void RenderInterface() // ... and, if they are checked, draw the windows
 
 Dev::HookInfo@ grip_hook;
 void GetGripPtr(uint64 r12) {
-   grip_ptr = r12;
+   if ( app is null
+     || app.CurrentPlayground is null
+     || app.CurrentPlayground.GameTerminals.Length == 0
+     || app.CurrentPlayground.GameTerminals[0].GUIPlayer is null )
+   {
+      return;
+   }
+   else
+   {
+      CSmPlayer@ sm_player = cast<CSmPlayer>(app.CurrentPlayground.GameTerminals[0].GUIPlayer);
+      if (sm_player.ScriptAPI.Velocity.z == Dev::ReadFloat(r12 - 4))
+      {
+         grip_ptr = r12;
+      }
+   }
 }
 void OnDestroyed() {
    Dev::Unhook(grip_hook);
