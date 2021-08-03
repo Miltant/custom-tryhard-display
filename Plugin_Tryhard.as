@@ -6,8 +6,8 @@
 
 [Setting name="Options as JSON" multiline description="\\$fffYou probably \\$f00DON'T\\$fff want to edit this. See the \\$d00Tryhard \\$dddOptions \\$ffffor a visual editor."]
 string labels_JSON = """{ "options": [ 
-{ "text": "gain: %roxgain%", "color": {"r": 1, "v": 1, "b": 1, "auto": true}, "position": { "x": 0.295, "y": 0.98 }, "size": 16 },
-{ "text": "gain: %stamgain% amount: #stam/#stammax", "color": {"r": 1, "v": 1, "b": 1, "auto": true}, "position": { "x": 0.595, "y": 0.98 }, "size": 16 }
+{ "text": "gain: %roxgain%", "color": {"r": 1, "v": 1, "b": 1, "auto": true}, "position": { "x": 0.2956, "y": 0.99 }, "size": 9.000 },
+{ "text": "gain: %stamgain% amount: #stam/#stammax", "color": {"r": 1, "v": 1, "b": 1, "auto": true}, "position": { "x": 0.5957, "y": 0.99 }, "size": 9.000 }
 ], "recording_variables": "#posY;#posX;#posZ" }""";
 
 
@@ -716,6 +716,11 @@ void Main() {
    }
 
    update_array_from_JSON();
+
+   while (true)
+   {
+      yield();
+   }
 }
 void OnSettingsChanged() { update_array_from_JSON(); }
 
@@ -732,7 +737,7 @@ void Render() // every frame, display the UILabels in 2 steps
    {
       grip_ptr = 0;
       return;
-  }
+   }
    
    // the player as a social body: nick, color, region, planets count...
    CSmPlayer@ sm_player = cast<CSmPlayer>(app.CurrentPlayground.GameTerminals[0].GUIPlayer);
@@ -749,10 +754,11 @@ void Render() // every frame, display the UILabels in 2 steps
       UILabel label = labels[i];
       string text = format_placeholders(label.text, sm_script);      
 
-      Draw::DrawString(
-         vec2(Draw::GetWidth() * label.position.x, Draw::GetHeight() * label.position.y),
-         label.auto_color ? player_color : vec4(label.color.x, label.color.y, label.color.z, 1),
-         text, null, label.font_size
+      nvg::FontSize(label.font_size);
+      nvg::FillColor(label.auto_color ? player_color : vec4(label.color.x, label.color.y, label.color.z, 1));
+      nvg::Text(
+         Draw::GetWidth() * label.position.x, Draw::GetHeight() * label.position.y,
+         text
       );
    }
 }
