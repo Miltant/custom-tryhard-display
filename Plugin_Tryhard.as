@@ -6,9 +6,9 @@
 
 [Setting name="Options as JSON" multiline description="\\$fffYou probably \\$f00DON'T\\$fff want to edit this. See the \\$d00Tryhard \\$dddOptions \\$ffffor a visual editor."]
 string labels_JSON = """{ "options": [ 
-{ "text": "gain: %roxgain%", "color": {"r": 1, "v": 1, "b": 1, "auto": true}, "position": { "x": 0.2956, "y": 0.99 }, "size": 9.000 },
-{ "text": "gain: %stamgain% amount: #stam/#stammax", "color": {"r": 1, "v": 1, "b": 1, "auto": true}, "position": { "x": 0.5957, "y": 0.99 }, "size": 9.000 }
-], "recording_variables": "#posY;#posX;#posZ" }""";
+{ "text": "gain: %roxgain%", "color": {"r": 1, "v": 1, "b": 1, "auto": true}, "position": { "x": 0.2956, "y": 0.99 }, "size": 15.000 },
+{ "text": "gain: %stamgain% amount: #stam/#stammax", "color": {"r": 1, "v": 1, "b": 1, "auto": true}, "position": { "x": 0.5957, "y": 0.99 }, "size": 15.000 }
+], "recording_variables": "#.posY;#.posX;#.posZ" }""";
 
 
 array<UILabel> labels;
@@ -419,7 +419,7 @@ string format_placeholders(string text, CSmScriptPlayer@ sm_script)
          {
             text = Regex::Replace(text, "#roxmax", "" + mode.GetPlayerAmmoMax(sm_script, weapon));
 
-            text = Regex::Replace(text, "%rox", "" + mode.GetPlayerAmmo(sm_script, weapon) / mode.GetPlayerAmmoMax(sm_script, weapon) * 100);
+            text = Regex::Replace(text, "%rox", "" + mode.GetPlayerAmmo(sm_script, weapon) / (mode.GetPlayerAmmoMax(sm_script, weapon) / 100.f));
             text = Regex::Replace(text, "#rox", "" + mode.GetPlayerAmmo(sm_script, weapon)); //  ?__?
          }
       }
@@ -698,7 +698,12 @@ void GetGripPtr(uint64 r12) {
    else
    {
       CSmPlayer@ sm_player = cast<CSmPlayer>(app.CurrentPlayground.GameTerminals[0].GUIPlayer);
-      if (sm_player.ScriptAPI.Velocity.z == Dev::ReadFloat(r12 - 4))
+      if (sm_player.ScriptAPI.Velocity.x == Dev::ReadFloat(r12 - 12) &&
+          sm_player.ScriptAPI.Velocity.y == Dev::ReadFloat(r12 - 8) &&
+          sm_player.ScriptAPI.Velocity.z == Dev::ReadFloat(r12 - 4) &&
+          sm_player.ScriptAPI.Position.x == Dev::ReadFloat(r12 - 24) &&
+          sm_player.ScriptAPI.Position.y == Dev::ReadFloat(r12 - 20) &&
+          sm_player.ScriptAPI.Position.z == Dev::ReadFloat(r12 - 16))
       {
          grip_ptr = r12;
       }
@@ -708,19 +713,19 @@ void OnDestroyed() {
    Dev::Unhook(grip_hook);
 }
 void Main() {
-   uint64 address_grip = 0x1404561E5;
+   uint64 address_grip = 0x1404561CA;
    auto opcode_grip = Dev::Read(address_grip, 5);
 
-   if (opcode_grip == "F3 41 0F 59 F8") {
+   if (opcode_grip == "F3 44 0F 59 C5") {
       @grip_hook = Dev::Hook(address_grip, 0, "GetGripPtr");
    }
 
-   update_array_from_JSON();
-
-   while (true)
+   while (app is null)
    {
-      yield();
+      @app = cast<CTrackMania>(GetApp());
    }
+
+   update_array_from_JSON();
 }
 void OnSettingsChanged() { update_array_from_JSON(); }
 
