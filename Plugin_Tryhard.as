@@ -355,7 +355,7 @@ void build_placeholders_help()
    }
    else
    {
-      UI::Text("   -   (\\$f00grip\\$z variables are not available on this version of maniaplanet)");
+      UI::Text("   -   (\\$f00grip\\$z variables could not be found, do you have another script that uses them?)");
    }
 }
 
