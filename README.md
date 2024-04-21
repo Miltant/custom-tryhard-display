@@ -1,3 +1,5 @@
+[See the openplanet plugin page here](https://openplanet.dev/plugin/smdashboard), or look for `Shootmania` in-game in the the plugin manager.
+
 # Additional Tryhard Display for ShootMania Obstacle
 
 Openplanet script to let the players be able to display labels on their screen.
