@@ -334,7 +334,6 @@ void build_placeholders_help()
          
          if (UI::Button("Enable \\$f00#grip\\$z"))
          {
-            print(address_grip);
             @grip_hook = Dev::Hook(address_grip, 2, "GetGripPtr", Dev::PushRegisters::SSE);
          }
       }
