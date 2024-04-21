@@ -1,11 +1,15 @@
 // The options are an array of UILabel, stored in the settings as a JSON
 
-[Setting name="Options as JSON" multiline description="\\$fffYou probably \\$f00DON'T\\$fff want to edit this. See the \\$d00Tryhard \\$dddOptions \\$ffffor a visual editor."]
+[Setting name="Options as JSON" multiline description="\\$fffYou probably \\$f00DON'T\\$fff want to edit this. See the \\$d00Obstacle \\$dddPhysics \\$fffmenu for a visual editor."]
 string labels_JSON = """{ "options": [ 
-{ "text": "gain: %roxgain%", "color": {"r": 1, "v": 1, "b": 1, "auto": true}, "position": { "x": 0.2956, "y": 0.99 }, "size": 15.000 },
-{ "text": "gain: %stamgain% amount: #stam/#stammax", "color": {"r": 1, "v": 1, "b": 1, "auto": true}, "position": { "x": 0.5957, "y": 0.99 }, "size": 15.000 }
-], "recording_variables": "#.posY;#.posX;#.posZ" }""";
+{ "text": "gain: %roxgain%", "visible": true, "color": {"r": 1, "v": 1, "b": 1, "auto": true}, "position": { "x": 0.2956, "y": 0.99 }, "size": 15.000 },
+{ "text": "gain: %stamgain% amount: #stam/#stammax", "visible": true, "color": {"r": 1, "v": 1, "b": 1, "auto": true}, "position": { "x": 0.5957, "y": 0.99 }, "size": 15.000 }
+], "recording_variables": "#.posY;#.posX;#.posZ", "grip": false }""";
 
+
+Dev::HookInfo@ grip_hook;
+uint64 address_grip = 0; // 0x140455C2B;
+bool should_hook_grip;
 
 array<UILabel> labels;
 
@@ -18,6 +22,7 @@ class UILabel
    float font_size = 30.0f;
    
    vec2 position = vec2(0.5f, 0.5f);
+   bool visible = true;
 }
 
 
@@ -48,7 +53,7 @@ class OptionsWindow
    
    void display_window() // only to be used in the RenderInterface() entry point
    {
-      UI::Begin("Additional \\$f00Tryhard\\$z Options");
+      if (UI::Begin("\\$d00Obstacle \\$dddPhysics \\$d00Display##ATOOptions", visible, UI::WindowFlags::AlwaysAutoResize))
       {
          if (labels.IsEmpty())
          {
@@ -65,16 +70,17 @@ class OptionsWindow
             UI::SameLine();
             
             
-            // ui element are identified by their label, an empty string as first argument makes thee box unclickable
-            if (UI::BeginCombo("\\$000", "\\$ffa" + labels[current_label].text, UI :: ComboFlags :: None))
+            UI::PushID("Combobox");
+            if (UI::BeginCombo("", "\\$ffa" + labels[current_label].text, UI :: ComboFlags :: None))
             {
                for (uint i = 0; i < labels.Length; ++i)
                {
-                  // `invisible_uint()` generates a unique string from the i
-                  if (UI::Selectable("\\$ffa" + labels[i].text + invisible_uint(i), i==current_label))
+                  UI::PushID(i);
+                  if (UI::Selectable("\\$ffa" + labels[i].text, i==current_label))
                   {
                      current_label = i;
                   }
+                  UI::PopID();
                }
                
                UI::Separator();
@@ -99,54 +105,40 @@ class OptionsWindow
                
                UI::EndCombo();
             }
+            UI::PopID();
             
             if (!labels.IsEmpty())
             {
                UI::Separator();
-               UI::Text("Font color:");
-               if (!(labels[current_label].auto_color = UI::Checkbox("Use the player's color", labels[current_label].auto_color)))
+               labels[current_label].visible = UI::Checkbox("Draw this label", labels[current_label].visible);
+
+               UI::Separator();
+               UI::Text(" Font color:");
+               if (!(labels[current_label].auto_color = UI::Checkbox(" Use the player's color", labels[current_label].auto_color)))
                   labels[current_label].color = UI::InputColor3("", labels[current_label].color);
                
                UI::Separator();
-               UI::Text("Font size:");
+               UI::Text(" Font size:");
                labels[current_label].font_size = Math::Clamp(UI::InputFloat("px", labels[current_label].font_size, 0.1f), 0.f, 1000.f);
                
                UI::Separator();
-               UI::Text("Position:");
+               UI::Text(" Position:");
                labels[current_label].position.x = Math::Clamp(UI::InputFloat("% of X", labels[current_label].position.x * 100, 0.01f) / 100, 0.f, 1.f);
                labels[current_label].position.y = Math::Clamp(UI::InputFloat("% of Y", labels[current_label].position.y * 100, 0.01f) / 100, 0.f, 1.f);
                
                UI::Separator();
-               UI::Text("Text:");
+               UI::Text(" Text:");
+               UI::PushID("Text");
                labels[current_label].text = UI::InputText("", labels[current_label].text);
-               UI::Text("Available placeholders:\n"
-                        "   -   \\$f00%stamgain\\$z : stamina regen (% of default value)\n"
-                        "   -   \\$f00%stam\\$z | \\$f00#stam\\$z : current stamina amount (100% = 3600)\n"
-                        "   -   \\$f00%stammax\\$z | \\$f00#stammax\\$z : full stamina amount (100% = 3600)");
-               
-               UI::Text("   -   \\$f00%roxgain\\$z | \\$f00#roxgain\\$z : rocket regen (100% = 0.63Hz)");
-               
-               UI::Text("   -   \\$f00#yaw\\$z | \\$f00#pitch\\$z : camera angles in radian");
-               
-               UI::Text("   -   \\$f00#speed\\$z : player velocity\n"
-                        "   -   \\$f00#hspeed\\$z : player horizontal velocity (North/South/East/West)\n"
-                        "   -   \\$f00#vspeed\\$z : player vertical velocity (Up/Down)\n");
+               UI::PopID();
 
-               UI::Text("   -   \\$f00#pos\\$z : player position\n"
-                        "   -   \\$f00#posX\\$z | \\$f00#posY\\$z | \\$f00#posZ\\$z : player position individual coordinates\n"
-                        "   -   \\$f00#dpos/dt\\$z | \\$f00#dhpos/dt\\$z | \\$f00#dvpos/dt\\$z : instantaneous \"velocity\"\n"
-                        "   -   \\$f00#dpos/dt2\\$z | \\$f00#dhpos/dt2\\$z | \\$f00#dvpos/dt2\\$z : instantaneous \"acceleration\"");
-
-               UI::Text("   -   \\$f00#grip\\$z | \\$f00#.gripX\\$z | etc. : grip vector\n"
-                        "   -   \\$f00°grip\\$z : grip vector direction");
-               
-               UI::Text("   -   \\$f00#.speed\\$z | \\$f00#.pos\\$z | etc. : speed, position, or grip with higher accuracy\n");
+               build_placeholders_help();
             }
          }
       }
       UI::End();
       
-      // I don't really know how to tell if something changed :/
+      // bad practice not to check is something changed, but performances seem fine
       update_JSON_from_array();
    }
 }
@@ -162,16 +154,16 @@ class RecordWindow
    
    void display_window() // only to be used in the RenderInterface() entry point
    {
-      UI::Begin("A\\$f00T\\$zO Record Options");
+      if (UI::Begin("\\$d00Obstacle \\$dddPhysics \\$d00Recorder##ATORecord", visible, UI::WindowFlags::AlwaysAutoResize))
       {
          if (buffer_record == "")
          {
-            UI::Text("variables to record:");
+            UI::Text(" Variables to record:");
             variables = UI::InputText(";-separated list", variables);
 
             if (variables != "")
             {
-               if (UI::Button("Start"))
+               if (UI::Button(" Start"))
                {
                   visible = false;
                   recording_started = true;
@@ -179,37 +171,29 @@ class RecordWindow
                }
             }
 
-            UI::Text("Available variables:\n"
-                     "   -   \\$f00%stamgain\\$z : stamina regen (% of default value)\n"
-                     "   -   \\$f00%stam\\$z | \\$f00#stam\\$z : current stamina amount (usually 100% = 3600)\n"
-                     "   -   \\$f00%stammax\\$z | \\$f00#stammax\\$z : full stamina amount (100% = 3600)");
-            
-            UI::Text("   -   \\$f00%roxgain\\$z | \\$f00#roxgain\\$z : ammo regen (100% = 0.63Hz))\n"
-                     "   -   \\$f00%rox\\$z | \\$f00#rox\\$z : current ammo amount (% of #ammomax)\n"
-                     "   -   \\$f00#roxmax\\$z : full ammo amount");
-            
-            UI::Text("   -   \\$f00#yaw\\$z | \\$f00#pitch\\$z : camera angles in radian");
-            
-            UI::Text("   -   \\$f00#speed\\$z : player velocity\n"
-                     "   -   \\$f00#hspeed\\$z : player horizontal velocity (North/South/East/West)\n"
-                     "   -   \\$f00#vspeed\\$z : player vertical velocity (Up/Down)\n");
+            build_placeholders_help();
 
-            UI::Text("   -   \\$f00#pos\\$z : player position\n"
-                     "   -   \\$f00#posX\\$z | \\$f00#posY\\$z | \\$f00#posZ\\$z : player position individual coordinates\n"
-                     "   -   \\$f00#dpos/dt\\$z | \\$f00#dhpos/dt\\$z | \\$f00#dvpos/dt\\$z : instantaneous \"velocity\"\n"
-                     "   -   \\$f00#dpos/dt2\\$z | \\$f00#dhpos/dt2\\$z | \\$f00#dvpos/dt2\\$z : instantaneous \"acceleration\"");
-
-            UI::Text("   -   \\$f00#grip\\$z | \\$f00#.grip\\$z | \\$f00#.gripX\\$z | etc. : grip vector\n"
-                     "   -   \\$f00°grip\\$z : grip vector direction");
-
-            UI::Text("   -   \\$f00#.speed\\$z | \\$f00#.pos\\$z | etc. : speed, position, or grip with higher accuracy\n");
-
-            // I don't really know how to tell if something changed :/
+            // bad practice not to check is something changed, but performances seem fine
             update_JSON_from_array();
          }
          else
          {
-            UI::InputTextMultiline("RecordingResult.csv", buffer_record);
+            UI::InputTextMultiline(" RecordingResult.csv", buffer_record, vec2(0, 0), UI::InputTextFlags::ReadOnly);
+
+            if (UI::Button(" Copy SpreadSheet"))
+            {
+               IO::SetClipboard(buffer_record.Replace(";", "\t"));
+            }
+            UI::SameLine();
+            if (UI::Button(" Head to Desmos"))
+            {
+               OpenBrowserURL("https://www.desmos.com/calculator");
+            }
+
+            if (UI::Button(" New Recording"))
+            {
+               buffer_record = "";
+            }
          }
       }
       UI::End();
@@ -253,6 +237,7 @@ void update_array_from_JSON() // side effect: labels
          
          label.text = label_JSON["text"];
          label.font_size = label_JSON["size"];
+         label.visible = label_JSON["visible"];
          
          
          Json::Value label_color = label_JSON["color"];
@@ -264,6 +249,8 @@ void update_array_from_JSON() // side effect: labels
          
          labels.InsertLast(label);
       }
+
+      should_hook_grip = root["grip"];
 
       Json::Value recording_variables_JSON = root["recording_variables"];
       record_window.variables = recording_variables_JSON;
@@ -284,6 +271,8 @@ void update_JSON_from_array()
    for (uint i = 0; i < labels.Length; ++i)
    {
       Json::Value label_JSON = Json::Object();
+      
+      label_JSON["visible"] = labels[i].visible;
       
       Json::Value label_color = Json::Object();
       label_color["r"] = labels[i].color.x;
@@ -307,8 +296,68 @@ void update_JSON_from_array()
    
    root["options"] = array_JSON;
    root["recording_variables"] = record_window.variables;
+   root["grip"] = should_hook_grip;
    
    labels_JSON = Json::Write(root);
+}
+
+
+void build_placeholders_help()
+{
+   UI::Text(" Available placeholders:\n"
+            "   -   \\$f00%stamgain\\$z : stamina regen (% of default value)\n"
+            "   -   \\$f00%stam\\$z | \\$f00#stam\\$z : current stamina amount (usually 100% = 3600)\n"
+            "   -   \\$f00%stammax\\$z | \\$f00#stammax\\$z : full stamina amount (100% = 3600)");
+   
+   UI::Text("   -   \\$f00%roxgain\\$z | \\$f00#roxgain\\$z : ammo regen (100% = 0.63Hz))\n"
+            "   -   \\$f00%rox\\$z | \\$f00#rox\\$z : current ammo amount (% of #ammomax)\n"
+            "   -   \\$f00#roxmax\\$z : full ammo amount");
+   
+   UI::Text("   -   \\$f00#yaw\\$z | \\$f00#pitch\\$z : camera angles in radian");
+   
+   UI::Text("   -   \\$f00#speed\\$z : player velocity\n"
+            "   -   \\$f00#hspeed\\$z : player horizontal velocity (North/South/East/West)\n"
+            "   -   \\$f00#vspeed\\$z : player vertical velocity (Up/Down)\n");
+
+   UI::Text("   -   \\$f00#pos\\$z : player position\n"
+            "   -   \\$f00#posX\\$z | \\$f00#posY\\$z | \\$f00#posZ\\$z : player position individual coordinates\n"
+            "   -   \\$f00#dpos/dt\\$z | \\$f00#dhpos/dt\\$z | \\$f00#dvpos/dt\\$z : instantaneous \"velocity\"\n"
+            "   -   \\$f00#dpos/dt2\\$z | \\$f00#dhpos/dt2\\$z | \\$f00#dvpos/dt2\\$z : instantaneous \"acceleration\"");
+
+   UI::Text("   -   \\$f00#.speed\\$z | \\$f00#.pos\\$z | etc. : speed, position, or grip with higher accuracy\n");
+
+   if (address_grip > 0)
+   {
+      if (grip_hook is null)
+      {
+         UI::Text("You can display a numerical representation of the \\$f00ej grip\\$z vector, but it might damage your FPS");
+         
+         if (UI::Button("Enable \\$f00#grip\\$z"))
+         {
+            print(address_grip);
+            @grip_hook = Dev::Hook(address_grip, 2, "GetGripPtr", Dev::PushRegisters::SSE);
+         }
+      }
+      else
+      {
+         UI::Text("   -   \\$f00#grip\\$z | \\$f00#.grip\\$z | \\$f00#.gripX\\$z | etc. : grip vector\n"
+                  "   -   \\$f00#gripyaw\\$z : grip vector direction");
+
+         if (UI::Button("Disable \\$f00#grip\\$z (restores FPS)"))
+         {
+            Dev::Unhook(grip_hook);
+            @grip_hook = null;
+         }
+      }
+
+      UI::SameLine();
+
+      should_hook_grip = UI::Checkbox("Always enable \\$f00#grip\\$z on startup", should_hook_grip);
+   }
+   else
+   {
+      UI::Text("   -   (\\$f00grip\\$z variables are not available on this version of maniaplanet)");
+   }
 }
 
 
@@ -332,27 +381,13 @@ vec4 get_rgb(float hue)
    return rgb;
 }
 
-string invisible_uint(uint i)
+int64 get_from_hex(const string &in hex, uint sum, uint index)
 {
-   if (i == 0) return "";
-   
-   if (i < 10) return "\\$00" + i;
-   
-   if (i < 100) return "\\$0" + i;
-   
-   if (i < 1000) return "\\$" + i;
-   
-   uint next = i / 1000;
-   return invisible_uint(next) + invisible_uint(next - i);
-}
-
-int64 get_from_hex(string hex, uint sum, uint index)
-{
-   if (hex[index] > 47 && hex[index] < 58)
+   if (hex[index] > 47 && hex[index] < 58) //[0-9]
       sum += hex[index] - 48;
-   if (hex[index] > 96 && hex[index] < 103)
+   if (hex[index] > 96 && hex[index] < 103) //[A-F]
       sum += hex[index] - 87;
-   if (hex[index] > 64 && hex[index] < 71)
+   if (hex[index] > 64 && hex[index] < 71) //[a-f]
       sum += hex[index] - 55;
 
    if (++index >= hex.Length)
@@ -361,19 +396,18 @@ int64 get_from_hex(string hex, uint sum, uint index)
    return get_from_hex(hex, sum * 16, index);
 }
 
-int64 get_from_hex(string hex)
+int64 get_from_hex(const string &in hex)
 {
    return get_from_hex(hex, 0, 0);
 }
 
-void show_error(string text)
+void show_error(const string &in text)
 {
-   UI::ShowNotification("Additional \\$f00Tryhard\\$z Options", text, 15000);
+   UI::ShowNotification("\\$d00Obstacle \\$dddPhysics###ATOBubble", text, 15000);
 }
 
 string format_placeholders(string text, CSmScriptPlayer@ sm_script)
 {
-
    if (text.Contains("rox"))
    {
       if (text.Contains("roxgain"))
@@ -545,35 +579,35 @@ string format_placeholders(string text, CSmScriptPlayer@ sm_script)
       }
    }
 
-   if (text.Contains("grip"))
+   if (grip_hook !is null && text.Contains("grip"))
    {
       vec3 grip = vec3(0, 0, 0);
 
       if (grip_ptr != 0) {
          grip = Dev::ReadVec3(grip_ptr);
-      }
 
-      if (text.Contains("gripX"))
-      {
-         text = Regex::Replace(text, "#.gripX", "" + grip.x);
-         text = Regex::Replace(text, "#gripX", "" + Math::Floor(grip.x * 10) / 10);
-      }
-      if (text.Contains("gripY"))
-      {
-         text = Regex::Replace(text, "#.gripY", "" + grip.y);
-         text = Regex::Replace(text, "#gripY", "" + Math::Floor(grip.y * 10) / 10);
-      }
-      if (text.Contains("gripZ"))
-      {
-         text = Regex::Replace(text, "#.gripZ", "" + grip.z);
-         text = Regex::Replace(text, "#gripZ", "" + Math::Floor(grip.z * 10) / 10);
-      }
-
-      if (text.Contains("grip"))
-      {
-         text = Regex::Replace(text, "#.grip", "" + grip.Length());
-         text = Regex::Replace(text, "#grip", "" + Math::Floor(grip.Length() * 10) / 10);
-         text = Regex::Replace(text, "°grip", "" + Math::Atan2(grip.x, grip.z));
+         if (text.Contains("gripX"))
+         {
+            text = Regex::Replace(text, "#.gripX", "" + grip.x);
+            text = Regex::Replace(text, "#gripX", "" + Math::Floor(grip.x * 10) / 10);
+         }
+         if (text.Contains("gripY"))
+         {
+            text = Regex::Replace(text, "#.gripY", "" + grip.y);
+            text = Regex::Replace(text, "#gripY", "" + Math::Floor(grip.y * 10) / 10);
+         }
+         if (text.Contains("gripZ"))
+         {
+            text = Regex::Replace(text, "#.gripZ", "" + grip.z);
+            text = Regex::Replace(text, "#gripZ", "" + Math::Floor(grip.z * 10) / 10);
+         }
+   
+         if (text.Contains("grip"))
+         {
+            text = Regex::Replace(text, "#gripyaw", "" + Math::Atan2(grip.x, grip.z));
+            text = Regex::Replace(text, "#.grip", "" + grip.Length());
+            text = Regex::Replace(text, "#grip", "" + Math::Floor(grip.Length() * 10) / 10);
+         }
       }
    }
 
@@ -598,14 +632,14 @@ string format_placeholders(string text, CSmScriptPlayer@ sm_script)
 
 void Update(float dt)
 {
-   dt /= 1000;
-
    if ( app is null
      || app.CurrentPlayground is null
      || app.CurrentPlayground.GameTerminals.Length == 0
-     || app.CurrentPlayground.GameTerminals[0].GUIPlayer is null )
+     || app.CurrentPlayground.GameTerminals[0].GUIPlayer is null
+     || app.LoadedManiaTitle is null
+     || app.LoadedManiaTitle.TitleId != "obstacle@smokegun" )
       return;
-   
+         
    CSmScriptPlayer@ sm_script = cast<CSmPlayer>(app.CurrentPlayground.GameTerminals[0].GUIPlayer).ScriptAPI;
 
    if (dt > 0)
@@ -634,37 +668,36 @@ void Update(float dt)
 }
 
 
-
 // Entry points
 
 void RenderMenuMain() // check-uncheck windows`.visible` ...
 {
-   if (UI::BeginMenu("Additional \\$f00Tryhard\\$z Options", true))
+   if ( app is null
+     || app.CurrentPlayground is null
+     || app.CurrentPlayground.GameTerminals.Length == 0
+     || app.CurrentPlayground.GameTerminals[0].GUIPlayer is null
+     || app.LoadedManiaTitle is null
+     || app.LoadedManiaTitle.TitleId != "obstacle@smokegun" )
+      return;
+
+   if (UI::BeginMenu("\\$d00Obstacle \\$dddPhysics###ATOMenu", true))
    {
-      if (option_window.visible)
-      {
-         if (UI::MenuItem("Show Options", "", option_window.visible, true))
-            option_window.visible = false;
-      }
-      else
-      {
-         if (UI::MenuItem("Show Options...", "", option_window.visible, true))
-            option_window.visible = true;
-      }
+      if (UI::MenuItem(" Show Options...", "", option_window.visible, true))
+         option_window.visible = !option_window.visible;
 
       if (record_window.visible)
       {
-         if (UI::MenuItem("Hide Record Options", "", false, true))
+         if (UI::MenuItem(" Hide Record Options", "", false, true))
             record_window.visible = false;
       }
       else if (record_window.recording_started)
       {
-         if (UI::MenuItem("Stop Recording...", "", false, true))
+         if (UI::MenuItem(" Stop Recording...", "", false, true))
             record_window.end_record();
       }
       else
       {
-         if (UI::MenuItem("Start Recording...", "", false, true))
+         if (UI::MenuItem(" Recording Options...", "", false, true))
          {
             record_window.visible = true;
             record_window.buffer_record = "";
@@ -681,13 +714,13 @@ void RenderInterface() // ... and, if they are checked, draw the windows
        record_window.display_window();
 }
 
-
-Dev::HookInfo@ grip_hook;
 void GetGripPtr(uint64 r12) {
    if ( app is null
      || app.CurrentPlayground is null
      || app.CurrentPlayground.GameTerminals.Length == 0
-     || app.CurrentPlayground.GameTerminals[0].GUIPlayer is null )
+     || app.CurrentPlayground.GameTerminals[0].GUIPlayer is null
+     || app.LoadedManiaTitle is null
+     || app.LoadedManiaTitle.TitleId != "obstacle@smokegun" )
    {
       return;
    }
@@ -705,16 +738,37 @@ void GetGripPtr(uint64 r12) {
       }
    }
 }
+// void GetGripPtr(uint64 r15) {
+//    if ( app is null
+//      || app.CurrentPlayground is null
+//      || app.CurrentPlayground.GameTerminals.Length == 0
+//      || app.CurrentPlayground.GameTerminals[0].GUIPlayer is null
+//    {
+//       return;
+//    }
+//    else
+//    {
+//       uint64 physics_ptr = r15 + 0x84;
+
+//       CSmPlayer@ sm_player = cast<CSmPlayer>(app.CurrentPlayground.GameTerminals[0].GUIPlayer);
+
+//       if (sm_player.ScriptAPI.Velocity.x == Dev::ReadFloat(physics_ptr + 12) &&
+//           sm_player.ScriptAPI.Velocity.y == Dev::ReadFloat(physics_ptr + 16) &&
+//           sm_player.ScriptAPI.Velocity.z == Dev::ReadFloat(physics_ptr + 20) &&
+//           sm_player.ScriptAPI.Position.x == Dev::ReadFloat(physics_ptr) &&
+//           sm_player.ScriptAPI.Position.y == Dev::ReadFloat(physics_ptr + 4) &&
+//           sm_player.ScriptAPI.Position.z == Dev::ReadFloat(physics_ptr + 8))
+//       {
+//          grip_ptr = physics_ptr + 24;
+//       }
+//    }
+// }
 void OnDestroyed() {
-   Dev::Unhook(grip_hook);
+   if (grip_hook !is null)
+      Dev::Unhook(grip_hook);
 }
 void Main() {
-   uint64 address_grip = 0x1404561CA;
-   auto opcode_grip = Dev::Read(address_grip, 5);
-
-   if (opcode_grip == "F3 44 0F 59 C5") {
-      @grip_hook = Dev::Hook(address_grip, 0, "GetGripPtr");
-   }
+   address_grip = Dev::FindPattern("48 8B 85 D8 00 00 00 48 89 45 A0 49 8D 41 40");
 
    while (app is null)
    {
@@ -722,11 +776,16 @@ void Main() {
    }
 
    update_array_from_JSON();
+
+   if (should_hook_grip && address_grip > 0)
+   {
+      @grip_hook = Dev::Hook(address_grip, 2, "GetGripPtr", Dev::PushRegisters::SSE);
+   }
 }
 void OnSettingsChanged() { update_array_from_JSON(); }
 
 
-void Render() // every frame, display the UILabels in 2 steps
+void Render() // every frame, display the `UILabel`s in 2 steps
 {
    // 1) retrieve the player's information
    
@@ -734,17 +793,19 @@ void Render() // every frame, display the UILabels in 2 steps
    if ( app is null
      || app.CurrentPlayground is null
      || app.CurrentPlayground.GameTerminals.Length == 0
-     || app.CurrentPlayground.GameTerminals[0].GUIPlayer is null )
+     || app.CurrentPlayground.GameTerminals[0].GUIPlayer is null
+     || app.LoadedManiaTitle is null
+     || app.LoadedManiaTitle.TitleId != "obstacle@smokegun" )
    {
       grip_ptr = 0;
       return;
    }
    
-   // the player as a social body: nick, color, region, planets count...
+   // the player's account: nick, color, region, planets count...
    CSmPlayer@ sm_player = cast<CSmPlayer>(app.CurrentPlayground.GameTerminals[0].GUIPlayer);
    player_color = get_rgb(sm_player.LinearHue);
    
-   // the player as a gaming element: velocity, position, stamina...
+   // the player's as far as the physics engine is concerned: velocity, position, stamina...
    CSmScriptPlayer@ sm_script = sm_player.ScriptAPI;
 
    
@@ -753,13 +814,18 @@ void Render() // every frame, display the UILabels in 2 steps
    for (uint i = 0; i < labels.Length; ++i)
    {
       UILabel label = labels[i];
-      string text = format_placeholders(label.text, sm_script);      
+
+      if (!label.visible)
+         continue;      
 
       nvg::FontSize(label.font_size);
       nvg::FillColor(label.auto_color ? player_color : vec4(label.color.x, label.color.y, label.color.z, 1));
+
       nvg::Text(
+         // label's x and y positions
          Draw::GetWidth() * label.position.x, Draw::GetHeight() * label.position.y,
-         text
+         // label's formated text
+         format_placeholders(label.text, sm_script)
       );
    }
 }
